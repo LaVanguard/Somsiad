@@ -1,18 +1,125 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Law Advisor</title>
-</head>
-<body>
-    <h1>Law Advisor 🏠⚖️</h1>
-    
-    {% if user.is_authenticated %}
-        <p>Witaj, {{ user.email }}!</p>
-        <a href="{% url 'account_logout' %}">Logout</a>
-    {% else %}
-        <p>Zaloguj się lub zarejestruj:</p>
-        <a href="{% url 'account_login' %}">Login</a> | 
-        <a href="{% url 'account_signup' %}">Sign Up</a>
-    {% endif %}
-</body>
-</html>
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Sąsiad - Twój doradca prawny{% endblock %}
+
+{% block content %}
+<div class="flex flex-col h-screen" x-data="{ question: '', loading: false }">
+    <!-- Top Navigation Bar -->
+    <nav class="bg-white border-b border-gray-200 px-6 py-3">
+        <div class="flex items-center justify-between max-w-7xl mx-auto">
+            <!-- Left: Hamburger Menu -->
+            <button class="p-2 hover:bg-gray-100 rounded-lg transition">
+                <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+
+            <!-- Center: Logo -->
+            <div class="flex items-center gap-3">
+                <img src="{% static 'images/logo.png' %}" alt="Sąsiad" class="w-8 h-8 object-contain">
+                <span class="text-xl font-semibold text-gray-800">Sąsiad</span>
+            </div>
+
+            <!-- Right: User Avatar -->
+            <button class="p-2 hover:bg-gray-100 rounded-lg transition">
+                <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                </div>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content Area (Chat/Response) -->
+    <main class="flex-1 overflow-y-auto px-4 py-8">
+        <div class="max-w-3xl mx-auto">
+            <div id="chat-container" class="space-y-6">
+                <!-- Welcome State (shown when no messages) -->
+                <div id="welcome-state" class="text-center py-20">
+                    <img src="{% static 'images/logo.png' %}" alt="Sąsiad" class="w-24 h-24 object-contain mx-auto mb-6 opacity-80">
+                    <h2 class="text-2xl font-medium text-gray-800 mb-3">Witaj w Sąsiad</h2>
+                    <p class="text-gray-500 text-lg">Zadaj pytanie o przepisy budowlane i prawne</p>
+                </div>
+
+                <!-- Response Area (populated by HTMX) -->
+                <div id="response-area">
+                    <!-- Messages will appear here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Input Field -->
+    <div class="bg-white border-t border-gray-200 px-4 py-4">
+        <div class="max-w-3xl mx-auto">
+            <form
+                hx-post="/api/query/"
+                hx-target="#response-area"
+                hx-swap="beforeend"
+                @htmx:before-request="loading = true; document.getElementById('welcome-state').style.display = 'none'"
+                @htmx:after-request="loading = false; question = ''"
+                class="relative"
+            >
+                {% csrf_token %}
+                <div class="relative flex items-end gap-3">
+                    <!-- Text Input -->
+                    <div class="flex-1">
+                        <textarea
+                            name="question"
+                            x-model="question"
+                            rows="1"
+                            placeholder="Zadaj pytanie o przepisy budowlane..."
+                            class="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-400 focus:border-transparent outline-none resize-none transition"
+                            style="min-height: 52px; max-height: 200px;"
+                            @input="$el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px'"
+                            :disabled="loading"
+                        ></textarea>
+                    </div>
+
+                    <!-- Send Button -->
+                    <button
+                        type="submit"
+                        :disabled="!question.trim() || loading"
+                        class="px-6 py-3 bg-gray-800 hover:bg-gray-900 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-xl transition duration-200 flex items-center gap-2"
+                    >
+                        <span x-show="!loading">Wyślij</span>
+                        <span x-show="loading">
+                            <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </span>
+                    </button>
+                </div>
+
+                <!-- Character hint -->
+                <p class="text-xs text-gray-400 mt-2 ml-1">
+                    Np. "Czy mogę postawić szopę 3m od granicy działki?"
+                </p>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Custom scrollbar for chat area */
+    main::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    main::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    main::-webkit-scrollbar-thumb {
+        background: #D1D5DB;
+        border-radius: 3px;
+    }
+
+    main::-webkit-scrollbar-thumb:hover {
+        background: #9CA3AF;
+    }
+</style>
+{% endblock %}

@@ -9,7 +9,8 @@
       "Bash(./venv/Scripts/python.exe manage.py runserver)",
       "Bash(curl -s http://127.0.0.1:8000/accounts/login/ -o nul)",
       "Bash(curl -s http://127.0.0.1:8000/accounts/signup/ -o nul)",
-      "Bash(curl -s http://127.0.0.1:8000/ -o nul)"
+      "Bash(curl -s http://127.0.0.1:8000/ -o nul)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []
