@@ -13,6 +13,9 @@ psycopg2-binary==2.9.10
 # Configuration
 python-decouple==3.8
 
+# Image handling
+Pillow==11.0.0
+
 # Testing
 iniconfig==2.1.0
 packaging==25.0
@@ -20,6 +23,14 @@ pluggy==1.6.0
 Pygments==2.19.2
 pytest==8.4.2
 pytest-django==4.11.1
+pytest-cov==6.0.0
+
+# Code Quality (CI/CD)
+black==24.10.0
+flake8==7.1.1
+isort==5.13.2
+bandit==1.7.10
+safety==3.2.11
 
 # RAG & AI (Sprint 2)
 langchain==0.3.7

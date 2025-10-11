@@ -14,10 +14,22 @@ class Query(models.Model):
         related_name='queries'
     )
     question = models.TextField(help_text="User's legal question")
+    image = models.ImageField(
+        upload_to='query_images/',
+        blank=True,
+        null=True,
+        help_text="Optional image attached to query"
+    )
     answer = models.TextField(blank=True, help_text="AI-generated answer")
     sources = models.JSONField(
         default=list,
         help_text="Citations and source documents"
+    )
+    rating = models.IntegerField(
+        null=True,
+        blank=True,
+        choices=[(1, 'Thumbs Down'), (5, 'Thumbs Up')],
+        help_text="User feedback on response quality"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     processing_time = models.FloatField(

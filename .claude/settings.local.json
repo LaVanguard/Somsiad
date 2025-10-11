@@ -15,7 +15,12 @@
       "Bash(git commit -m \"$(cat <<''EOF''\nAdd Somsiad UI: chat interface with image upload and joke action buttons\n\nFeatures:\n- Rebranded to \"Somsiad\" (with intentional typo)\n- Modern minimalist chat interface (Claude/Gemini style)\n- Image upload with preview functionality\n- HTMX-powered real-time messaging\n- 3 joke action buttons: Prokuratura, Donos, Straż Miejska\n- Message bubbles for user and AI responses\n- Mock API endpoint for testing (ready for LLM integration)\n\nTech:\n- Tailwind CSS + HTMX + Alpine.js\n- Static files configuration\n- Responsive design with Inter font\n- Ready for Sprint 2: RAG integration\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(git push:*)",
       "Bash(test:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git rm:*)",
+      "Bash(git checkout:*)",
+      "Bash(.\\venv\\Scripts\\python.exe manage.py makemigrations:*)",
+      "Bash(\".\\venv\\Scripts\\pip.exe\" install Pillow==11.0.0)",
+      "Bash(\".\\venv\\Scripts\\python.exe\" manage.py check)"
     ],
     "deny": [],
     "ask": []
