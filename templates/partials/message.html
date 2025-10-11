@@ -25,6 +25,29 @@
             <div class="flex-1">
                 <div class="bg-gray-100 rounded-2xl px-4 py-3">
                     <p class="text-sm text-gray-800 leading-relaxed whitespace-pre-line">{{ answer|default:"Dziękuję za pytanie! Analizuję przepisy... (To jest mockowa odpowiedź. Wkrótce podłączymy prawdziwy LLM)" }}</p>
+
+                    <!-- Sources (if available) -->
+                    {% if sources %}
+                    <div class="mt-3 pt-3 border-t border-gray-200">
+                        <p class="text-xs font-medium text-gray-600 mb-2">📚 Źródła:</p>
+                        <div class="space-y-1">
+                            {% for source in sources %}
+                            <div class="text-xs text-gray-600 bg-white rounded px-2 py-1">
+                                <span class="font-medium">{{ source.metadata.document_title|default:"Dokument" }}</span>
+                                {% if source.metadata.page_range %}
+                                <span class="text-gray-400">• Str. {{ source.metadata.page_range }}</span>
+                                {% endif %}
+                                <span class="text-gray-400">• Trafność: {{ source.similarity|floatformat:0 }}%</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Processing time (if available) -->
+                    {% if processing_time %}
+                    <p class="text-xs text-gray-400 mt-2">⏱️ Czas odpowiedzi: {{ processing_time|floatformat:1 }}s</p>
+                    {% endif %}
                 </div>
                 <p class="text-xs text-gray-400 mt-1 mb-2">Somsiad • Właśnie teraz</p>
 
