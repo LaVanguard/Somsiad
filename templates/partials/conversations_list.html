@@ -1,0 +1,56 @@
+{% if grouped_conversations.today %}
+<div class="text-xs text-gray-400 px-2 py-2">Dzisiaj</div>
+{% for conv in grouped_conversations.today %}
+<button
+    hx-get="/api/conversations/{{ conv.id }}/"
+    hx-target="#response-area"
+    hx-swap="innerHTML"
+    data-conversation-id="{{ conv.id }}"
+    class="conversation-item w-full text-left px-4 py-3 hover:bg-gray-700 rounded-lg transition"
+    @click="currentConversationId = {{ conv.id }}"
+>
+    <div class="text-sm truncate mb-1">{{ conv.title }}</div>
+    <div class="text-xs text-gray-400">{{ conv.updated_at|timesince }} temu</div>
+</button>
+{% endfor %}
+{% endif %}
+
+{% if grouped_conversations.yesterday %}
+<div class="text-xs text-gray-400 px-2 py-2 mt-4">Wczoraj</div>
+{% for conv in grouped_conversations.yesterday %}
+<button
+    hx-get="/api/conversations/{{ conv.id }}/"
+    hx-target="#response-area"
+    hx-swap="innerHTML"
+    data-conversation-id="{{ conv.id }}"
+    class="conversation-item w-full text-left px-4 py-3 hover:bg-gray-700 rounded-lg transition"
+    @click="currentConversationId = {{ conv.id }}"
+>
+    <div class="text-sm truncate mb-1">{{ conv.title }}</div>
+    <div class="text-xs text-gray-400">{{ conv.updated_at|timesince }} temu</div>
+</button>
+{% endfor %}
+{% endif %}
+
+{% if grouped_conversations.older %}
+<div class="text-xs text-gray-400 px-2 py-2 mt-4">Starsze</div>
+{% for conv in grouped_conversations.older %}
+<button
+    hx-get="/api/conversations/{{ conv.id }}/"
+    hx-target="#response-area"
+    hx-swap="innerHTML"
+    data-conversation-id="{{ conv.id }}"
+    class="conversation-item w-full text-left px-4 py-3 hover:bg-gray-700 rounded-lg transition"
+    @click="currentConversationId = {{ conv.id }}"
+>
+    <div class="text-sm truncate mb-1">{{ conv.title }}</div>
+    <div class="text-xs text-gray-400">{{ conv.updated_at|date:"d M Y" }}</div>
+</button>
+{% endfor %}
+{% endif %}
+
+{% if not grouped_conversations.today and not grouped_conversations.yesterday and not grouped_conversations.older %}
+<div class="text-center py-8 text-gray-400 text-sm">
+    Brak rozmów. Zacznij nową rozmowę!
+</div>
+{% endif %}

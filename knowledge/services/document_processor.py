@@ -8,6 +8,9 @@ from PyPDF2 import PdfReader
 from django.core.files.uploadedfile import UploadedFile
 from knowledge.models import Document, Embedding
 from knowledge.services.rag_service import RAGService
+from knowledge.services.preprocessor import DocumentPreprocessor
+from knowledge.services.semantic_chunker import SemanticChunker, LegalChunk
+from knowledge.services.summarizer import DocumentSummarizer
 
 logger = logging.getLogger(__name__)
 
@@ -16,13 +19,25 @@ class DocumentProcessor:
     """
     Handles PDF document processing:
     1. Extract text from PDF
-    2. Chunk text into smaller pieces
-    3. Generate embeddings
-    4. Store in Supabase + Django database
+    2. Preprocess and clean text
+    3. Chunk text into smaller pieces
+    4. Generate embeddings
+    5. Store in Supabase + Django database
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        enable_preprocessing: bool = True,
+        use_semantic_chunking: bool = True,
+        generate_summaries: bool = True
+    ):
         self.rag_service = RAGService()
+        self.preprocessor = DocumentPreprocessor()
+        self.semantic_chunker = SemanticChunker()
+        self.summarizer = DocumentSummarizer()
+        self.enable_preprocessing = enable_preprocessing
+        self.use_semantic_chunking = use_semantic_chunking
+        self.generate_summaries = generate_summaries
 
     def extract_text_from_pdf(self, file_path: str) -> Dict[int, str]:
         """
@@ -77,51 +92,109 @@ class DocumentProcessor:
                 for page_num, text in pages.items()
             ])
 
-            # 3. Chunk text
-            metadata = {
+            # 3. Preprocess text (clean administrative noise)
+            if self.enable_preprocessing:
+                logger.info(f"Preprocessing {document.title}...")
+                preprocessed = self.preprocessor.preprocess(full_text)
+                stats = self.preprocessor.get_stats(preprocessed['raw'], preprocessed['cleaned'])
+                logger.info(
+                    f"Preprocessing stats: {stats['chars_removed']} chars removed "
+                    f"({stats['reduction_pct']}% reduction)"
+                )
+                full_text = preprocessed['cleaned']
+
+            # 4. Generate document summary (if enabled)
+            doc_summary = None
+            if self.generate_summaries:
+                logger.info(f"Generating document summary for {document.title}...")
+                doc_summary = self.summarizer.generate_document_summary(
+                    full_text,
+                    document.title
+                )
+                logger.info(f"Summary generated: {len(doc_summary['summary'])} chars")
+
+            # 5. Chunk text (semantic or fixed-size)
+            base_metadata = {
                 "document_id": document.id,
                 "document_title": document.title,
                 "category": document.category
             }
-            chunks = self.rag_service.chunk_document(full_text, metadata)
-            logger.info(f"Created {len(chunks)} chunks from {document.title}")
 
-            # 4. Generate embeddings
-            texts = [chunk.page_content for chunk in chunks]
+            if self.use_semantic_chunking:
+                logger.info("Using semantic chunking (by articles)...")
+                legal_chunks = self.semantic_chunker.chunk_document(full_text, base_metadata)
+                logger.info(f"Created {len(legal_chunks)} semantic chunks")
+
+                # Enrich metadata for each chunk
+                enriched_chunks = []
+                for chunk in legal_chunks:
+                    enhanced_metadata = self.semantic_chunker.extract_metadata(chunk)
+                    chunk.metadata.update(enhanced_metadata)
+                    enriched_chunks.append(chunk)
+
+                # Convert to format expected by RAG service
+                texts = [chunk.content for chunk in enriched_chunks]
+                chunk_metadata_list = [
+                    {**base_metadata, **chunk.to_dict()}
+                    for chunk in enriched_chunks
+                ]
+            else:
+                # Fallback: Use original fixed-size chunking
+                logger.info("Using fixed-size chunking...")
+                langchain_chunks = self.rag_service.chunk_document(full_text, base_metadata)
+                texts = [chunk.page_content for chunk in langchain_chunks]
+                chunk_metadata_list = [
+                    {**base_metadata, "chunk_index": i}
+                    for i in range(len(texts))
+                ]
+
+            logger.info(f"Created {len(texts)} chunks from {document.title}")
+
+            # 6. Add document summary as searchable chunk (if generated)
+            if doc_summary:
+                logger.info("Adding document summary as searchable chunk...")
+                summary_chunk = self.summarizer.create_searchable_summary_chunk(
+                    document.id,
+                    document.title,
+                    doc_summary
+                )
+                texts.insert(0, summary_chunk['content'])
+                chunk_metadata_list.insert(0, summary_chunk['metadata'])
+                logger.info("Document summary chunk added")
+
+            # 7. Generate embeddings for all chunks (including summary)
             embeddings = self.rag_service.generate_embeddings(texts)
             logger.info(f"Generated {len(embeddings)} embeddings")
 
-            # 5. Store in Supabase
-            chunk_metadata = [
-                {
-                    **metadata,
-                    "chunk_index": i,
-                    "page_range": self._extract_page_range(chunk.page_content)
-                }
-                for i, chunk in enumerate(chunks)
-            ]
-
+            # 8. Store in Supabase
             embedding_ids = self.rag_service.store_embeddings(
                 embeddings,
                 texts,
-                chunk_metadata
+                chunk_metadata_list
             )
             logger.info(f"Stored {len(embedding_ids)} embeddings in Supabase")
 
-            # 6. Store references in Django database
-            for i, (chunk, emb_id) in enumerate(zip(chunks, embedding_ids)):
+            # 9. Store references in Django database
+            for i, (text, emb_id, metadata) in enumerate(zip(texts, embedding_ids, chunk_metadata_list)):
                 Embedding.objects.create(
                     document=document,
-                    chunk_text=chunk.page_content[:5000],  # Truncate if needed
+                    chunk_text=text[:5000],  # Truncate if needed
                     embedding_id=str(emb_id),
-                    metadata=chunk_metadata[i]
+                    metadata=metadata
                 )
 
-            # 7. Mark document as processed
+            # 10. Mark document as processed
             document.processed = True
             document.save()
 
-            logger.info(f"✅ Successfully processed {document.title}")
+            # Log summary statistics
+            logger.info(
+                f"✅ Successfully processed {document.title}:\n"
+                f"   - Chunks: {len(texts)}\n"
+                f"   - Embeddings: {len(embeddings)}\n"
+                f"   - Summary: {'Yes' if doc_summary else 'No'}\n"
+                f"   - Semantic chunking: {'Yes' if self.use_semantic_chunking else 'No'}"
+            )
             return True
 
         except Exception as e:

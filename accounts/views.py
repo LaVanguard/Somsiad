@@ -1,19 +1,65 @@
 from django.shortcuts import render
-from django.http import HttpResponse
+from django.http import HttpResponse, StreamingHttpResponse
 from django.views.decorators.http import require_http_methods
 from django.template.loader import render_to_string
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 import logging
+import json
+import time
 
 from knowledge.services.rag_service import RAGService
-from queries.models import Query
+from knowledge.models import Document
+from queries.models import Query, Conversation
 
 logger = logging.getLogger(__name__)
 
 
 def home(request):
-    return render(request, 'home.html')
+    """Home view with document data and conversations for sidebar."""
+    # Get processed and unprocessed documents
+    processed_docs = Document.objects.filter(processed=True).order_by('-uploaded_at')
+    unprocessed_docs = Document.objects.filter(processed=False).order_by('-uploaded_at')
+
+    # Get user conversations if authenticated
+    conversations = []
+    if request.user.is_authenticated:
+        from datetime import timedelta
+        from django.utils import timezone
+
+        now = timezone.now()
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        yesterday_start = today_start - timedelta(days=1)
+
+        user_conversations = Conversation.objects.filter(
+            user=request.user
+        ).prefetch_related('queries')
+
+        grouped = {
+            'today': [],
+            'yesterday': [],
+            'older': []
+        }
+
+        for conv in user_conversations:
+            if conv.updated_at >= today_start:
+                grouped['today'].append(conv)
+            elif conv.updated_at >= yesterday_start:
+                grouped['yesterday'].append(conv)
+            else:
+                grouped['older'].append(conv)
+
+        conversations = grouped
+
+    context = {
+        'processed_documents': processed_docs,
+        'unprocessed_documents': unprocessed_docs,
+        'processed_count': processed_docs.count(),
+        'unprocessed_count': unprocessed_docs.count(),
+        'grouped_conversations': conversations,
+    }
+
+    return render(request, 'home.html', context)
 
 
 @require_http_methods(["POST"])
@@ -26,6 +72,25 @@ def query_api(request):
     question = request.POST.get('question', '').strip()
     image = request.FILES.get('image', None)
     action = request.POST.get('action', None)
+    conversation_id = request.POST.get('conversation_id', None)
+
+    # Get or create conversation
+    conversation = None
+    if conversation_id:
+        try:
+            conversation = Conversation.objects.get(
+                id=conversation_id,
+                user=request.user
+            )
+        except Conversation.DoesNotExist:
+            pass
+
+    # Create new conversation if none exists
+    if not conversation:
+        conversation = Conversation.objects.create(
+            user=request.user,
+            title=question[:50] + "..." if len(question) > 50 else question
+        )
 
     # Validate question
     if not question:
@@ -92,6 +157,7 @@ def query_api(request):
     try:
         Query.objects.create(
             user=request.user,
+            conversation=conversation,
             question=question,
             image=saved_image,
             answer=answer,
@@ -107,11 +173,105 @@ def query_api(request):
         'image_url': image_url,
         'answer': answer,
         'sources': sources[:3] if sources else [],  # Show max 3 sources
-        'processing_time': processing_time
+        'processing_time': processing_time,
+        'conversation_id': conversation.id
     }
 
     html = render_to_string('partials/message.html', context)
     return HttpResponse(html)
+
+
+@require_http_methods(["POST"])
+@login_required
+def query_stream_api(request):
+    """
+    Streaming chat API endpoint with RAG integration.
+    Returns Server-Sent Events (SSE) for real-time response streaming.
+    """
+    question = request.POST.get('question', '').strip()
+    conversation_id = request.POST.get('conversation_id', None)
+
+    # Get or create conversation
+    conversation = None
+    if conversation_id:
+        try:
+            conversation = Conversation.objects.get(
+                id=conversation_id,
+                user=request.user
+            )
+        except Conversation.DoesNotExist:
+            pass
+
+    if not conversation:
+        conversation = Conversation.objects.create(
+            user=request.user,
+            title=question[:50] + "..." if len(question) > 50 else question
+        )
+
+    # Validate question
+    if not question:
+        def error_stream():
+            yield f"data: {json.dumps({'error': 'Proszę zadać pytanie!'})}\n\n"
+        return StreamingHttpResponse(error_stream(), content_type='text/event-stream')
+
+    # Check API keys
+    if not settings.OPENAI_API_KEY or not settings.SUPABASE_URL:
+        def config_error_stream():
+            yield f"data: {json.dumps({'error': 'RAG system not configured'})}\n\n"
+        return StreamingHttpResponse(config_error_stream(), content_type='text/event-stream')
+
+    def event_stream():
+        """Generator for SSE streaming."""
+        start_time = time.time()
+        full_answer = ""
+        sources = []
+
+        try:
+            # Initialize RAG
+            rag = RAGService()
+
+            # Search for relevant chunks
+            search_results = rag.search_similar_chunks(question, top_k=5)
+            context_chunks = [text for text, _, _ in search_results]
+            sources = [
+                {
+                    "text": text[:200] + "..." if len(text) > 200 else text,
+                    "metadata": metadata,
+                    "similarity": similarity
+                }
+                for text, metadata, similarity in search_results
+            ]
+
+            # Send conversation ID first
+            yield f"data: {json.dumps({'conversation_id': conversation.id})}\n\n"
+
+            # Stream answer chunks
+            for chunk in rag.generate_answer_streaming(question, context_chunks):
+                if chunk:
+                    full_answer += chunk
+                    yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+
+            # Calculate processing time
+            processing_time = time.time() - start_time
+
+            # Save to database
+            Query.objects.create(
+                user=request.user,
+                conversation=conversation,
+                question=question,
+                answer=full_answer,
+                sources=sources,
+                processing_time=processing_time
+            )
+
+            # Send completion event with sources
+            yield f"data: {json.dumps({'done': True, 'sources': sources[:3], 'processing_time': processing_time})}\n\n"
+
+        except Exception as e:
+            logger.error(f"Streaming RAG query failed: {e}", exc_info=True)
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+    return StreamingHttpResponse(event_stream(), content_type='text/event-stream')
 
 
 def _get_joke_response(action: str, question: str) -> str:

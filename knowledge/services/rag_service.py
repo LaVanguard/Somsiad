@@ -194,6 +194,50 @@ Odpowiedź:"""
 
         return answer
 
+    def generate_answer_streaming(
+        self,
+        question: str,
+        context_chunks: List[str]
+    ):
+        """
+        Generate answer using LLM with retrieved context (streaming).
+
+        Args:
+            question: User's question
+            context_chunks: Retrieved relevant document chunks
+
+        Yields:
+            Answer chunks as they are generated
+        """
+        # Build prompt with context
+        context = "\n\n".join([
+            f"[Fragment {i+1}]\n{chunk}"
+            for i, chunk in enumerate(context_chunks)
+        ])
+
+        prompt = f"""Jesteś Somsiad - pomocny doradca prawny dla właścicieli domów jednorodzinnych w Polsce.
+
+Kontekst prawny:
+{context}
+
+Pytanie użytkownika:
+{question}
+
+Instrukcje:
+- Odpowiedz na pytanie w oparciu o podany kontekst prawny
+- Jeśli kontekst nie zawiera pełnej odpowiedzi, powiedz to wyraźnie
+- Używaj prostego, przyjaznego języka (nie prawniczego żargonu)
+- Dodaj odrobinę humoru jeśli to możliwe
+- Jeśli to kwestia sąsiedzka, bądź dyplomatyczny
+- Zawsze wspominaj o konsultacji z prawnikiem dla pewności
+
+Odpowiedź:"""
+
+        # Stream answer chunks
+        for chunk in self.llm.stream(prompt):
+            if hasattr(chunk, 'content'):
+                yield chunk.content
+
     def process_query(
         self,
         question: str,

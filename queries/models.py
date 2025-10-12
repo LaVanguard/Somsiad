@@ -2,6 +2,33 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
+class Conversation(models.Model):
+    """
+    Chat conversation session for a user.
+    Groups related queries together.
+    """
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='conversations'
+    )
+    title = models.CharField(
+        max_length=255,
+        help_text="Conversation title (auto-generated from first query)"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'conversations'
+        ordering = ['-updated_at']
+        verbose_name = 'Conversation'
+        verbose_name_plural = 'Conversations'
+
+    def __str__(self):
+        return f"{self.user.email}: {self.title}"
+
+
 class Query(models.Model):
     """
     User query with RAG-generated response.
@@ -12,6 +39,14 @@ class Query(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name='queries'
+    )
+    conversation = models.ForeignKey(
+        Conversation,
+        on_delete=models.CASCADE,
+        related_name='queries',
+        null=True,
+        blank=True,
+        help_text="Conversation this query belongs to"
     )
     question = models.TextField(help_text="User's legal question")
     image = models.ImageField(
