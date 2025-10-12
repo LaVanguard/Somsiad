@@ -121,7 +121,7 @@ class DocumentProcessor:
             }
 
             if self.use_semantic_chunking:
-                logger.info("Using semantic chunking (by articles)...")
+                logger.info("✅ Using SEMANTIC chunking (PRD-compliant, by articles/sections)...")
                 legal_chunks = self.semantic_chunker.chunk_document(full_text, base_metadata)
                 logger.info(f"Created {len(legal_chunks)} semantic chunks")
 
@@ -140,7 +140,8 @@ class DocumentProcessor:
                 ]
             else:
                 # Fallback: Use original fixed-size chunking
-                logger.info("Using fixed-size chunking...")
+                logger.warning("⚠️ Using NAIVE fixed-size chunking (not PRD-compliant)")
+                logger.warning("Consider enabling semantic chunking for production use")
                 langchain_chunks = self.rag_service.chunk_document(full_text, base_metadata)
                 texts = [chunk.page_content for chunk in langchain_chunks]
                 chunk_metadata_list = [

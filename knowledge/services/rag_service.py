@@ -36,8 +36,9 @@ class RAGService:
         self.supabase: Client = create_client(self.supabase_url, self.supabase_key)
 
         # Text splitter for chunking documents
+        # Note: PRD specifies 1500 char max chunk size (Section 2.2)
         self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=800,
+            chunk_size=1500,
             chunk_overlap=200,
             length_function=len,
         )
@@ -46,6 +47,16 @@ class RAGService:
         """
         Split document into chunks for embedding.
 
+        **DEPRECATED**: This method uses naive fixed-size chunking.
+        For production, use DocumentProcessor with SemanticChunker instead.
+        This is kept only for backward compatibility and testing.
+
+        The production pipeline (DocumentProcessor) implements:
+        - Semantic chunking by legal structure (Art., §, Rozdział)
+        - Hierarchical document summaries
+        - Metadata enrichment with legal references
+        - Preprocessing to remove administrative noise
+
         Args:
             text: Document text
             metadata: Optional metadata (page numbers, etc.)
@@ -53,6 +64,14 @@ class RAGService:
         Returns:
             List of LangChain Document objects
         """
+        import warnings
+        warnings.warn(
+            "RAGService.chunk_document() uses naive chunking. "
+            "Use DocumentProcessor with SemanticChunker for production.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+
         chunks = self.text_splitter.split_text(text)
         documents = [
             LangChainDocument(

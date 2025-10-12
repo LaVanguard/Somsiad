@@ -36,6 +36,26 @@ OPENAI_API_KEY = config('OPENAI_API_KEY', default='')
 SUPABASE_URL = config('SUPABASE_URL', default='')
 SUPABASE_KEY = config('SUPABASE_KEY', default='')
 
+# RAG Configuration (PRD v2.1 Section 2.2)
+# Centralized configuration for Retrieval-Augmented Generation system
+RAG_CONFIG = {
+    # Embedding Configuration
+    'EMBEDDING_MODEL': 'text-embedding-3-small',
+    'EMBEDDING_DIMENSION': 1536,
+
+    # Generation Configuration
+    'GENERATION_MODEL': 'gpt-4o-mini',
+    'TEMPERATURE': 0.3,  # Low temperature for factual accuracy
+
+    # Vector Search Configuration
+    'SIMILARITY_METRIC': 'cosine',
+    'TOP_K': 5,  # Number of context chunks to retrieve
+
+    # Chunking Configuration
+    'MAX_CHUNK_SIZE': 1500,  # Maximum characters per chunk
+    'CHUNK_OVERLAP': 200,     # Overlap between chunks for context continuity
+}
+
 
 # Application definition
 INSTALLED_APPS = [
