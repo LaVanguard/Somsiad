@@ -25,6 +25,7 @@ from knowledge.document_views import (
     process_document,
     process_all_documents,
     reprocess_document,
+    delete_document,
     list_documents
 )
 from queries.views import (
@@ -45,6 +46,7 @@ urlpatterns = [
     path('api/documents/upload/', upload_document, name='upload_document'),
     path('api/documents/<int:document_id>/process/', process_document, name='process_document'),
     path('api/documents/<int:document_id>/reprocess/', reprocess_document, name='reprocess_document'),
+    path('api/documents/<int:document_id>/delete/', delete_document, name='delete_document'),
     path('api/documents/process-all/', process_all_documents, name='process_all_documents'),
     path('api/documents/list/', list_documents, name='list_documents'),
 

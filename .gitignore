@@ -51,3 +51,19 @@ htmlcov/
 dist/
 build/
 *.egg-info/
+
+# Legal Documents (large PDFs)
+legal_documents/raw/*.pdf
+legal_documents/raw/**/*.pdf
+legal_documents/processed/*.pdf
+!legal_documents/**/README.md
+
+# Test files and temporary outputs
+test_*.py
+check_*.py
+verify_*.py
+*_answer.txt
+nul
+
+# Claude settings
+.claude/settings.local.json

@@ -153,9 +153,15 @@
                         <button
                             hx-post="/api/documents/process-all/"
                             hx-target="#document-status"
-                            class="text-xs text-green-400 hover:text-green-300"
+                            hx-indicator="#process-all-spinner"
+                            hx-on::before-request="document.getElementById('document-status').innerHTML = '<div class=\'text-blue-400 text-xs\'>[INFO] Przetwarzanie wszystkich dokumentów... To może potrwać kilka minut.</div>'"
+                            class="text-xs text-green-400 hover:text-green-300 flex items-center gap-1"
                         >
-                            Przetwórz wszystkie
+                            <span>Przetwórz wszystkie</span>
+                            <svg id="process-all-spinner" class="htmx-indicator animate-spin h-3 w-3" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
                         </button>
                     </h3>
                     <div

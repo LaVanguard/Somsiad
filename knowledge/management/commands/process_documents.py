@@ -37,7 +37,7 @@ class Command(BaseCommand):
 
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"\n✅ Processing complete:\n"
+                    f"\n[SUCCESS] Processing complete:\n"
                     f"  - Total: {results['total']}\n"
                     f"  - Success: {results['success']}\n"
                     f"  - Failed: {results['failed']}"
@@ -60,9 +60,9 @@ class Command(BaseCommand):
                 success = processor.process_document(document)
 
             if success:
-                self.stdout.write(self.style.SUCCESS(f"✅ Successfully processed: {document.title}"))
+                self.stdout.write(self.style.SUCCESS(f"[SUCCESS] Successfully processed: {document.title}"))
             else:
-                self.stdout.write(self.style.ERROR(f"❌ Failed to process: {document.title}"))
+                self.stdout.write(self.style.ERROR(f"[ERROR] Failed to process: {document.title}"))
             return
 
         # No arguments provided

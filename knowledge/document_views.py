@@ -80,33 +80,37 @@ def process_document(request, document_id):
     try:
         logger.info(f"Starting document processing: {document.title}")
 
+        # Send immediate feedback
+        import time
+        start_time = time.time()
+
         # Process document
         processor = DocumentProcessor()
         success = processor.process_document(document)
 
+        processing_time = time.time() - start_time
+
         if success:
             return HttpResponse(
                 f'''<div class="text-green-400">
-                    ✅ Dokument "{document.title}" przetworzony!<br>
-                    <span class="text-xs">Utworzono {document.embeddings.count()} chunków</span>
+                    [OK] Dokument "{document.title}" przetworzony!<br>
+                    <span class="text-xs">Utworzono {document.embeddings.count()} chunków w {processing_time:.1f}s</span>
                 </div>
                 <script>
-                    // Refresh both lists
-                    setTimeout(() => {{
-                        htmx.ajax('GET', '/api/documents/list/?status=processed', {{target: '#processed-list'}});
-                        htmx.ajax('GET', '/api/documents/list/?status=unprocessed', {{target: '#unprocessed-list'}});
-                    }}, 2000);
+                    // Refresh both lists immediately
+                    htmx.ajax('GET', '/api/documents/list/?status=processed', {{target: '#processed-list'}});
+                    htmx.ajax('GET', '/api/documents/list/?status=unprocessed', {{target: '#unprocessed-list'}});
                 </script>'''
             )
         else:
             return HttpResponse(
-                f'<div class="text-red-400">❌ Przetwarzanie {document.title} nie powiodło się</div>'
+                f'<div class="text-red-400">[ERROR] Przetwarzanie {document.title} nie powiodło się</div>'
             )
 
     except Exception as e:
         logger.error(f"Document processing failed: {e}", exc_info=True)
         return HttpResponse(
-            f'<div class="text-red-400">❌ Błąd: {str(e)}</div>'
+            f'<div class="text-red-400">[ERROR] Błąd: {str(e)}</div>'
         )
 
 
@@ -177,6 +181,48 @@ def reprocess_document(request, document_id):
         logger.error(f"Reprocessing failed: {e}", exc_info=True)
         return HttpResponse(
             f'<div class="text-red-400">❌ Błąd: {str(e)}</div>'
+        )
+
+
+@require_http_methods(["POST"])
+@login_required
+def delete_document(request, document_id):
+    """Delete a document and its embeddings."""
+    document = get_object_or_404(Document, id=document_id)
+
+    try:
+        # Delete embeddings from Supabase
+        from knowledge.services.rag_service import RAGService
+        rag = RAGService()
+
+        embeddings = document.embeddings.all()
+        for emb in embeddings:
+            try:
+                rag.supabase.table("embeddings").delete().eq("id", emb.embedding_id).execute()
+            except Exception as e:
+                logger.warning(f"Failed to delete embedding {emb.embedding_id} from Supabase: {e}")
+
+        # Delete document and related embeddings from Django
+        document_title = document.title
+        document.delete()  # Cascade deletes embeddings
+
+        logger.info(f"Document deleted: {document_title}")
+
+        return HttpResponse(
+            f'''<div class="text-green-400">
+                [OK] Dokument "{document_title}" został usunięty
+            </div>
+            <script>
+                // Refresh both lists
+                htmx.ajax('GET', '/api/documents/list/?status=processed', {{target: '#processed-list'}});
+                htmx.ajax('GET', '/api/documents/list/?status=unprocessed', {{target: '#unprocessed-list'}});
+            </script>'''
+        )
+
+    except Exception as e:
+        logger.error(f"Document deletion failed: {e}", exc_info=True)
+        return HttpResponse(
+            f'<div class="text-red-400">[ERROR] Nie udało się usunąć: {str(e)}</div>'
         )
 
 
