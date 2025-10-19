@@ -70,7 +70,12 @@ class Query(models.Model):
     processing_time = models.FloatField(
         null=True,
         blank=True,
-        help_text="Time taken to generate response (seconds)"
+        help_text="Total time from query to completion (seconds)"
+    )
+    ttft = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="Time To First Token - PRD v2.1 NFR-1 (target: <5s P95)"
     )
 
     class Meta:

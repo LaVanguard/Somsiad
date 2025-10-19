@@ -223,6 +223,8 @@ def query_stream_api(request):
     def event_stream():
         """Generator for SSE streaming."""
         start_time = time.time()
+        ttft = None  # Time To First Token (PRD NFR-1)
+        first_token_sent = False
         full_answer = ""
         sources = []
 
@@ -248,24 +250,40 @@ def query_stream_api(request):
             # Stream answer chunks
             for chunk in rag.generate_answer_streaming(question, context_chunks):
                 if chunk:
+                    # Measure TTFT (Time To First Token) - PRD v2.1 NFR-1
+                    if not first_token_sent:
+                        ttft = time.time() - start_time
+                        first_token_sent = True
+                        logger.info(f"TTFT: {ttft:.3f}s (PRD target: <5s P95)")
+
                     full_answer += chunk
                     yield f"data: {json.dumps({'chunk': chunk})}\n\n"
 
-            # Calculate processing time
+            # Calculate total processing time
             processing_time = time.time() - start_time
 
-            # Save to database
+            # Save to database with performance metrics
             Query.objects.create(
                 user=request.user,
                 conversation=conversation,
                 question=question,
                 answer=full_answer,
                 sources=sources,
-                processing_time=processing_time
+                processing_time=processing_time,
+                ttft=ttft  # Time To First Token (PRD v2.1 NFR-1)
             )
 
-            # Send completion event with sources
-            yield f"data: {json.dumps({'done': True, 'sources': sources[:3], 'processing_time': processing_time})}\n\n"
+            # Log performance metrics
+            if ttft:
+                logger.info(f"Performance: TTFT={ttft:.3f}s, Total={processing_time:.3f}s")
+
+            # Send completion event with sources and performance data
+            yield f"data: {json.dumps({
+                'done': True,
+                'sources': sources[:3],
+                'processing_time': processing_time,
+                'ttft': ttft
+            })}\n\n"
 
         except Exception as e:
             logger.error(f"Streaming RAG query failed: {e}", exc_info=True)
