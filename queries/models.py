@@ -87,3 +87,60 @@ class Query(models.Model):
     def __str__(self):
         preview = self.question[:50] + "..." if len(self.question) > 50 else self.question
         return f"{self.user.email}: {preview}"
+
+
+class SystemPrompt(models.Model):
+    """
+    System prompt for RAG responses.
+    Editable by admin users.
+    Only one active prompt at a time.
+    """
+    prompt_text = models.TextField(
+        help_text="System prompt used for RAG responses",
+        default="""Jesteś Somsiad - pomocnym asystentem prawnym dla polskich właścicieli domów jednorodzinnych.
+
+Twoim zadaniem jest udzielanie jasnych, rzeczowych odpowiedzi na pytania prawne dotyczące:
+- Budownictwa i remontów
+- Ogrodów i działek
+- Przeglądów technicznych
+- Sporów sąsiedzkich
+
+Zasady odpowiedzi:
+1. Odpowiadaj TYLKO na podstawie dostarczonych źródeł prawnych
+2. Cytuj konkretne artykuły i przepisy
+3. Używaj prostego języka, unikaj zbędnego żargonu prawnego
+4. Jeśli nie masz pewności lub źródła nie zawierają odpowiedzi, powiedz to wprost
+5. W razie potrzeby zasugeruj konsultację z prawnikiem
+
+Format odpowiedzi:
+- Krótkie podsumowanie (1-2 zdania)
+- Szczegółowa odpowiedź z odnies
+ieniami do przepisów
+- Praktyczne wskazówki (jeśli masz pewność)"""
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Admin who last updated this prompt"
+    )
+
+    class Meta:
+        db_table = 'system_prompts'
+        ordering = ['-updated_at']
+        verbose_name = 'System Prompt'
+        verbose_name_plural = 'System Prompts'
+
+    def __str__(self):
+        status = "Active" if self.is_active else "Inactive"
+        return f"System Prompt ({status}) - Updated {self.updated_at.strftime('%Y-%m-%d %H:%M')}"
+
+    def save(self, *args, **kwargs):
+        # Ensure only one active prompt
+        if self.is_active:
+            SystemPrompt.objects.filter(is_active=True).exclude(pk=self.pk).update(is_active=False)
+        super().save(*args, **kwargs)

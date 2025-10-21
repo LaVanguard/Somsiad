@@ -34,6 +34,10 @@ from queries.views import (
     load_conversation,
     delete_conversation
 )
+from queries.profile_views import (
+    get_profile_sidebar,
+    update_system_prompt
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -55,6 +59,10 @@ urlpatterns = [
     path('api/conversations/list/', list_conversations, name='list_conversations'),
     path('api/conversations/<int:conversation_id>/', load_conversation, name='load_conversation'),
     path('api/conversations/<int:conversation_id>/delete/', delete_conversation, name='delete_conversation'),
+
+    # Profile endpoints
+    path('api/profile/', get_profile_sidebar, name='get_profile'),
+    path('api/profile/update-prompt/', update_system_prompt, name='update_system_prompt'),
 ]
 
 # Serve media files in development
