@@ -190,37 +190,56 @@ All document and conversation API endpoints use `@csrf_exempt` decorator, which 
 
 ## ⏳ Pending Tasks
 
-### 5. **Database Migration - PostgreSQL** ⏳
+### 5. **Database Migration - Supabase PostgreSQL** ⏳
 
-**Current State:** Using SQLite (`db.sqlite3`)
-**Target:** PostgreSQL (production-ready database)
+**Current State:** Using SQLite (`db.sqlite3`) for Django models
+**Target:** Supabase PostgreSQL (already used for embeddings)
 
 **Why Migrate:**
 - ❌ SQLite doesn't support concurrent writes (problematic in production)
 - ❌ Not recommended for production by Django docs
-- ✅ PostgreSQL is robust, scalable, and production-ready
+- ✅ Supabase PostgreSQL already in use for vector storage (pgvector)
+- ✅ Consolidates all data in one database
 - ✅ Better performance for concurrent users
-- ✅ Required for most hosting platforms (Heroku, Railway, etc.)
+- ✅ Production-ready and scalable
 
 **Migration Steps:**
-1. Install `psycopg2-binary` (already in requirements.txt ✅)
-2. Setup PostgreSQL locally or use cloud provider
+1. ✅ `psycopg2-binary` already in requirements.txt
+2. Get Supabase PostgreSQL connection details:
+   - URL: Available in Supabase dashboard → Settings → Database
+   - Password: Same as project password
+   - Port: 5432 (default)
 3. Update `DATABASES` in `settings.py`:
    ```python
    DATABASES = {
        'default': {
            'ENGINE': 'django.db.backends.postgresql',
-           'NAME': config('DB_NAME', default='law_advisor'),
-           'USER': config('DB_USER', default='postgres'),
-           'PASSWORD': config('DB_PASSWORD'),
-           'HOST': config('DB_HOST', default='localhost'),
-           'PORT': config('DB_PORT', default='5432'),
+           'NAME': config('SUPABASE_DB_NAME', default='postgres'),
+           'USER': config('SUPABASE_DB_USER', default='postgres'),
+           'PASSWORD': config('SUPABASE_DB_PASSWORD'),
+           'HOST': config('SUPABASE_DB_HOST'),
+           'PORT': config('SUPABASE_DB_PORT', default='5432'),
        }
    }
    ```
-4. Run migrations: `python manage.py migrate`
-5. Create superuser: `python manage.py createsuperuser`
-6. Test all functionality
+4. Add to `.env`:
+   ```bash
+   SUPABASE_DB_HOST=db.xxx.supabase.co
+   SUPABASE_DB_PASSWORD=your-supabase-password
+   SUPABASE_DB_NAME=postgres
+   SUPABASE_DB_USER=postgres
+   SUPABASE_DB_PORT=5432
+   ```
+5. Run migrations: `python manage.py migrate`
+6. Create superuser: `python manage.py createsuperuser`
+7. Re-upload documents if needed
+8. Test all functionality
+
+**Benefits:**
+- Single database for both Django models and embeddings
+- No local PostgreSQL installation needed
+- Same infrastructure for dev and production
+- Free tier sufficient for development
 
 **Status:** ⏳ **PENDING**
 
