@@ -187,6 +187,12 @@ AUTHENTICATION_BACKENDS = [
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
+# CSRF Configuration (for HTMX and AJAX requests)
+CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read CSRF cookie
+CSRF_COOKIE_SAMESITE = 'Lax'  # Reasonable protection while allowing functionality
+CSRF_USE_SESSIONS = False  # Use cookie-based CSRF token (default)
+CSRF_COOKIE_SECURE = not DEBUG  # HTTPS only in production
+
 # Django-allauth settings
 ACCOUNT_LOGIN_METHODS = {'email'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']

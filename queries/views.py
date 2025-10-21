@@ -1,7 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
 from django.template.loader import render_to_string
 from django.contrib.auth.decorators import login_required
 import logging
@@ -92,7 +91,6 @@ def load_conversation(request, conversation_id):
     return HttpResponse(html)
 
 
-@csrf_exempt
 @require_http_methods(["DELETE"])
 @login_required
 def delete_conversation(request, conversation_id):
