@@ -15,6 +15,7 @@ from queries.models import Query, Conversation
 logger = logging.getLogger(__name__)
 
 
+@login_required
 def home(request):
     """Home view with document data and conversations for sidebar."""
     # Get processed and unprocessed documents
@@ -273,6 +274,13 @@ def query_stream_api(request):
                 ttft=ttft  # Time To First Token (PRD v2.1 NFR-1)
             )
 
+            # Generate conversation title if this is the first query
+            if conversation.queries.count() == 1:  # Just created first query
+                new_title = _generate_conversation_title(question, full_answer)
+                conversation.title = new_title
+                conversation.save()
+                logger.info(f"Generated conversation title: {new_title}")
+
             # Log performance metrics
             if ttft:
                 logger.info(f"Performance: TTFT={ttft:.3f}s, Total={processing_time:.3f}s")
@@ -290,6 +298,45 @@ def query_stream_api(request):
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
     return StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+
+
+def _generate_conversation_title(question: str, answer: str) -> str:
+    """
+    Generate a short conversation title from Q&A using OpenAI.
+
+    Args:
+        question: User's question
+        answer: AI's answer
+
+    Returns:
+        Short title (max 50 chars)
+    """
+    try:
+        from langchain_openai import ChatOpenAI
+
+        llm = ChatOpenAI(
+            openai_api_key=settings.OPENAI_API_KEY,
+            model="gpt-4o-mini",
+            temperature=0.3
+        )
+
+        prompt = f"""Wygeneruj krótki tytuł (max 40 znaków) dla tej rozmowy w języku polskim.
+Tytuł powinien być zwięzłym opisem tematu rozmowy.
+
+Pytanie: {question[:200]}
+Odpowiedź: {answer[:200]}
+
+Zwróć TYLKO tytuł, bez cudzysłowów i dodatkowych znaków."""
+
+        response = llm.invoke(prompt)
+        title = response.content.strip()[:50]  # Limit to 50 chars
+
+        return title if title else question[:50] + "..."
+
+    except Exception as e:
+        logger.error(f"Failed to generate title: {e}")
+        # Fallback: use first 50 chars of question
+        return question[:50] + ("..." if len(question) > 50 else "")
 
 
 def _get_joke_response(action: str, question: str) -> str:

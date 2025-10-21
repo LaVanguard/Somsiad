@@ -28,7 +28,7 @@
                 <p class="text-xs font-semibold text-gray-600 mb-2">Źródła:</p>
                 <ul class="text-xs text-gray-500 space-y-1">
                     {% for source in query.sources|slice:":3" %}
-                    <li>📄 {{ source.metadata.document_title }} (str. {{ source.metadata.page }})</li>
+                    <li>📄 {{ source.metadata.document_title }}{% if source.metadata.article_number %} - {{ source.metadata.article_number }}{% endif %}{% if source.metadata.section_name %}, {{ source.metadata.section_name }}{% endif %}</li>
                     {% endfor %}
                 </ul>
             </div>

@@ -5,16 +5,19 @@ Handles upload, processing, and status updates.
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
 from django.template.loader import render_to_string
 from django.contrib.auth.decorators import login_required
 import logging
 
 from knowledge.models import Document
 from knowledge.services.document_processor import DocumentProcessor
+from accounts.decorators import ajax_login_required
 
 logger = logging.getLogger(__name__)
 
 
+@csrf_exempt
 @require_http_methods(["POST"])
 @login_required
 def upload_document(request):
@@ -71,6 +74,7 @@ def upload_document(request):
         )
 
 
+@csrf_exempt
 @require_http_methods(["POST"])
 @login_required
 def process_document(request, document_id):
@@ -114,6 +118,7 @@ def process_document(request, document_id):
         )
 
 
+@csrf_exempt
 @require_http_methods(["POST"])
 @login_required
 def process_all_documents(request):
@@ -151,6 +156,7 @@ def process_all_documents(request):
         )
 
 
+@csrf_exempt
 @require_http_methods(["POST"])
 @login_required
 def reprocess_document(request, document_id):
@@ -184,6 +190,7 @@ def reprocess_document(request, document_id):
         )
 
 
+@csrf_exempt
 @require_http_methods(["POST"])
 @login_required
 def delete_document(request, document_id):
@@ -227,7 +234,7 @@ def delete_document(request, document_id):
 
 
 @require_http_methods(["GET"])
-@login_required
+@ajax_login_required
 def list_documents(request):
     """List documents (processed or unprocessed) for HTMX refresh."""
     status = request.GET.get('status', 'processed')

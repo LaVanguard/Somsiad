@@ -1,11 +1,13 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
 from django.template.loader import render_to_string
 from django.contrib.auth.decorators import login_required
 import logging
 
 from .models import Conversation, Query
+from accounts.decorators import ajax_login_required
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +37,7 @@ def create_conversation(request):
 
 
 @require_http_methods(["GET"])
-@login_required
+@ajax_login_required
 def list_conversations(request):
     """List all conversations for the current user."""
     conversations = Conversation.objects.filter(
@@ -90,6 +92,7 @@ def load_conversation(request, conversation_id):
     return HttpResponse(html)
 
 
+@csrf_exempt
 @require_http_methods(["DELETE"])
 @login_required
 def delete_conversation(request, conversation_id):
@@ -101,8 +104,7 @@ def delete_conversation(request, conversation_id):
     )
 
     conversation.delete()
+    logger.info(f"Deleted conversation {conversation_id} for user {request.user.id}")
 
-    return JsonResponse({
-        'success': True,
-        'message': 'Conversation deleted'
-    })
+    # Return empty response - HTMX will remove the element
+    return HttpResponse(status=200)

@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>{% block title %}Somsiad - Twój doradca prawny{% endblock %}</title>
 
     <!-- Tailwind CSS -->
@@ -11,6 +12,16 @@
 
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <!-- HTMX CSRF Token Configuration -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.body.addEventListener('htmx:configRequest', function(event) {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                event.detail.headers['X-CSRFToken'] = csrfToken;
+            });
+        });
+    </script>
 
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>

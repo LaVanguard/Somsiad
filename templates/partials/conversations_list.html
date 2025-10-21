@@ -1,51 +1,96 @@
 {% if grouped_conversations.today %}
 <div class="text-xs text-gray-400 px-2 py-2">Dzisiaj</div>
 {% for conv in grouped_conversations.today %}
-<button
-    hx-get="/api/conversations/{{ conv.id }}/"
-    hx-target="#response-area"
-    hx-swap="innerHTML"
-    data-conversation-id="{{ conv.id }}"
-    class="conversation-item w-full text-left px-4 py-3 hover:bg-gray-700 rounded-lg transition"
-    @click="currentConversationId = {{ conv.id }}"
->
-    <div class="text-sm truncate mb-1">{{ conv.title }}</div>
-    <div class="text-xs text-gray-400">{{ conv.updated_at|timesince }} temu</div>
-</button>
+<div class="flex items-center gap-2 group">
+    <button
+        hx-get="/api/conversations/{{ conv.id }}/"
+        hx-target="#response-area"
+        hx-swap="innerHTML"
+        data-conversation-id="{{ conv.id }}"
+        class="conversation-item flex-1 text-left px-4 py-3 hover:bg-gray-700 rounded-lg transition overflow-hidden"
+        @click="currentConversationId = {{ conv.id }}; document.getElementById('welcome-state').style.display = 'none';"
+        title="{{ conv.title }}"
+    >
+        <div class="text-sm truncate mb-1">{{ conv.title }}</div>
+        <div class="text-xs text-gray-400 truncate">{{ conv.updated_at|timesince }} temu</div>
+    </button>
+    <button
+        hx-delete="/api/conversations/{{ conv.id }}/delete/"
+        hx-confirm="Usunąć tę rozmowę?"
+        hx-target="closest div"
+        hx-swap="outerHTML swap:0s"
+        class="flex-shrink-0 p-2 text-gray-400 hover:text-red-400 hover:bg-gray-700 rounded opacity-0 group-hover:opacity-100 transition"
+        title="Usuń rozmowę"
+    >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+        </svg>
+    </button>
+</div>
 {% endfor %}
 {% endif %}
 
 {% if grouped_conversations.yesterday %}
 <div class="text-xs text-gray-400 px-2 py-2 mt-4">Wczoraj</div>
 {% for conv in grouped_conversations.yesterday %}
-<button
-    hx-get="/api/conversations/{{ conv.id }}/"
-    hx-target="#response-area"
-    hx-swap="innerHTML"
-    data-conversation-id="{{ conv.id }}"
-    class="conversation-item w-full text-left px-4 py-3 hover:bg-gray-700 rounded-lg transition"
-    @click="currentConversationId = {{ conv.id }}"
->
-    <div class="text-sm truncate mb-1">{{ conv.title }}</div>
-    <div class="text-xs text-gray-400">{{ conv.updated_at|timesince }} temu</div>
-</button>
+<div class="flex items-center gap-2 group">
+    <button
+        hx-get="/api/conversations/{{ conv.id }}/"
+        hx-target="#response-area"
+        hx-swap="innerHTML"
+        data-conversation-id="{{ conv.id }}"
+        class="conversation-item flex-1 text-left px-4 py-3 hover:bg-gray-700 rounded-lg transition overflow-hidden"
+        @click="currentConversationId = {{ conv.id }}; document.getElementById('welcome-state').style.display = 'none';"
+        title="{{ conv.title }}"
+    >
+        <div class="text-sm truncate mb-1">{{ conv.title }}</div>
+        <div class="text-xs text-gray-400 truncate">{{ conv.updated_at|timesince }} temu</div>
+    </button>
+    <button
+        hx-delete="/api/conversations/{{ conv.id }}/delete/"
+        hx-confirm="Usunąć tę rozmowę?"
+        hx-target="closest div"
+        hx-swap="outerHTML swap:0s"
+        class="flex-shrink-0 p-2 text-gray-400 hover:text-red-400 hover:bg-gray-700 rounded opacity-0 group-hover:opacity-100 transition"
+        title="Usuń rozmowę"
+    >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+        </svg>
+    </button>
+</div>
 {% endfor %}
 {% endif %}
 
 {% if grouped_conversations.older %}
 <div class="text-xs text-gray-400 px-2 py-2 mt-4">Starsze</div>
 {% for conv in grouped_conversations.older %}
-<button
-    hx-get="/api/conversations/{{ conv.id }}/"
-    hx-target="#response-area"
-    hx-swap="innerHTML"
-    data-conversation-id="{{ conv.id }}"
-    class="conversation-item w-full text-left px-4 py-3 hover:bg-gray-700 rounded-lg transition"
-    @click="currentConversationId = {{ conv.id }}"
->
-    <div class="text-sm truncate mb-1">{{ conv.title }}</div>
-    <div class="text-xs text-gray-400">{{ conv.updated_at|date:"d M Y" }}</div>
-</button>
+<div class="flex items-center gap-2 group">
+    <button
+        hx-get="/api/conversations/{{ conv.id }}/"
+        hx-target="#response-area"
+        hx-swap="innerHTML"
+        data-conversation-id="{{ conv.id }}"
+        class="conversation-item flex-1 text-left px-4 py-3 hover:bg-gray-700 rounded-lg transition overflow-hidden"
+        @click="currentConversationId = {{ conv.id }}; document.getElementById('welcome-state').style.display = 'none';"
+        title="{{ conv.title }}"
+    >
+        <div class="text-sm truncate mb-1">{{ conv.title }}</div>
+        <div class="text-xs text-gray-400 truncate">{{ conv.updated_at|date:"d M Y" }}</div>
+    </button>
+    <button
+        hx-delete="/api/conversations/{{ conv.id }}/delete/"
+        hx-confirm="Usunąć tę rozmowę?"
+        hx-target="closest div"
+        hx-swap="outerHTML swap:0s"
+        class="flex-shrink-0 p-2 text-gray-400 hover:text-red-400 hover:bg-gray-700 rounded opacity-0 group-hover:opacity-100 transition"
+        title="Usuń rozmowę"
+    >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+        </svg>
+    </button>
+</div>
 {% endfor %}
 {% endif %}
 

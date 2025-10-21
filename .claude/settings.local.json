@@ -39,7 +39,8 @@
       "Bash(del \"C:\\Repos\\Law_Advisor\\UI_FIXES_COMPLETE.md\")",
       "Bash(git restore:*)",
       "Bash(start cursor .)",
-      "Bash(venv/Scripts/pip.exe install:*)"
+      "Bash(venv/Scripts/pip.exe install:*)",
+      "Bash(venv/Scripts/playwright.exe install chromium)"
     ],
     "deny": [],
     "ask": []
