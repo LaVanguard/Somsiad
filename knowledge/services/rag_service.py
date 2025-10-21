@@ -168,6 +168,37 @@ class RAGService:
 
         return results
 
+    def _get_system_prompt(self) -> str:
+        """Get active system prompt from database or return default."""
+        try:
+            from queries.models import SystemPrompt
+            system_prompt = SystemPrompt.objects.filter(is_active=True).first()
+            if system_prompt:
+                return system_prompt.prompt_text
+        except Exception:
+            pass
+
+        # Fallback to default if database not available
+        return """Jesteś Somsiad - pomocnym asystentem prawnym dla polskich właścicieli domów jednorodzinnych.
+
+Twoim zadaniem jest udzielanie jasnych, rzeczowych odpowiedzi na pytania prawne dotyczące:
+- Budownictwa i remontów
+- Ogrodów i działek
+- Przeglądów technicznych
+- Sporów sąsiedzkich
+
+Zasady odpowiedzi:
+1. Odpowiadaj TYLKO na podstawie dostarczonych źródeł prawnych
+2. Cytuj konkretne artykuły i przepisy
+3. Używaj prostego języka, unikaj zbędnego żargonu prawnego
+4. Jeśli nie masz pewności lub źródła nie zawierają odpowiedzi, powiedz to wprost
+5. W razie potrzeby zasugeruj konsultację z prawnikiem
+
+Format odpowiedzi:
+- Krótkie podsumowanie (1-2 zdania)
+- Szczegółowa odpowiedź z odniesieniami do przepisów
+- Praktyczne wskazówki (jeśli masz pewność)"""
+
     def generate_answer(
         self,
         question: str,
@@ -183,27 +214,22 @@ class RAGService:
         Returns:
             Generated answer
         """
+        # Get system prompt from database
+        system_prompt = self._get_system_prompt()
+
         # Build prompt with context
         context = "\n\n".join([
             f"[Fragment {i+1}]\n{chunk}"
             for i, chunk in enumerate(context_chunks)
         ])
 
-        prompt = f"""Jesteś Somsiad - pomocny doradca prawny dla właścicieli domów jednorodzinnych w Polsce.
+        prompt = f"""{system_prompt}
 
 Kontekst prawny:
 {context}
 
 Pytanie użytkownika:
 {question}
-
-Instrukcje:
-- Odpowiedz na pytanie w oparciu o podany kontekst prawny
-- Jeśli kontekst nie zawiera pełnej odpowiedzi, powiedz to wyraźnie
-- Używaj prostego, przyjaznego języka (nie prawniczego żargonu)
-- Dodaj odrobinę humoru jeśli to możliwe
-- Jeśli to kwestia sąsiedzka, bądź dyplomatyczny
-- Zawsze wspominaj o konsultacji z prawnikiem dla pewności
 
 Odpowiedź:"""
 
@@ -228,27 +254,22 @@ Odpowiedź:"""
         Yields:
             Answer chunks as they are generated
         """
+        # Get system prompt from database
+        system_prompt = self._get_system_prompt()
+
         # Build prompt with context
         context = "\n\n".join([
             f"[Fragment {i+1}]\n{chunk}"
             for i, chunk in enumerate(context_chunks)
         ])
 
-        prompt = f"""Jesteś Somsiad - pomocny doradca prawny dla właścicieli domów jednorodzinnych w Polsce.
+        prompt = f"""{system_prompt}
 
 Kontekst prawny:
 {context}
 
 Pytanie użytkownika:
 {question}
-
-Instrukcje:
-- Odpowiedz na pytanie w oparciu o podany kontekst prawny
-- Jeśli kontekst nie zawiera pełnej odpowiedzi, powiedz to wyraźnie
-- Używaj prostego, przyjaznego języka (nie prawniczego żargonu)
-- Dodaj odrobinę humoru jeśli to możliwe
-- Jeśli to kwestia sąsiedzka, bądź dyplomatyczny
-- Zawsze wspominaj o konsultacji z prawnikiem dla pewności
 
 Odpowiedź:"""
 
