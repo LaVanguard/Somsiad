@@ -78,8 +78,10 @@ Właściciele domów nie wiedzą jakie przepisy ich dotyczą (budowa, ogród, pr
 ### Prerequisites
 - Python 3.11+
 - Git
+- OpenAI API Key ([get here](https://platform.openai.com/api-keys))
+- Supabase Account ([setup guide](docs/SUPABASE_SETUP.md))
 
-### Installation
+### Local Development
 
 ```bash
 # Clone repo
@@ -98,6 +100,10 @@ source venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
+# Copy .env.example to .env and fill in your API keys
+cp .env.example .env
+# Edit .env with your actual values
+
 # Run migrations
 python manage.py migrate
 
@@ -112,6 +118,19 @@ python manage.py runserver
 - **Home (Chat):** http://127.0.0.1:8000/
 - **Login:** http://127.0.0.1:8000/accounts/login/
 - **Admin:** http://127.0.0.1:8000/admin/
+
+### Production Deployment
+
+For deploying to production (Railway, Heroku, etc.), see the complete guide:
+
+**📖 [Deployment Guide](docs/DEPLOYMENT.md)**
+
+Quick deployment to Railway:
+1. Push code to GitHub
+2. Connect Railway to your repo
+3. Add PostgreSQL database
+4. Set environment variables
+5. Deploy! 🚀
 
 ## 📁 Project Structure
 
