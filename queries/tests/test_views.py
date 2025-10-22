@@ -334,11 +334,8 @@ def test_delete_conversation_success(mock_user):
 
     response = client.delete(f'/api/conversations/{conv_id}/delete/')
 
+    # Delete endpoint returns empty 200 response (for HTMX)
     assert response.status_code == 200
-    data = json.loads(response.content)
-
-    assert data['success'] is True
-    assert 'message' in data
 
     # Verify conversation was deleted
     assert not Conversation.objects.filter(id=conv_id).exists()
