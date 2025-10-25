@@ -40,7 +40,16 @@
       "Bash(git restore:*)",
       "Bash(start cursor .)",
       "Bash(venv/Scripts/pip.exe install:*)",
-      "Bash(venv/Scripts/playwright.exe install chromium)"
+      "Bash(venv/Scripts/playwright.exe install chromium)",
+      "Bash(set ENVIRONMENT=development:*)",
+      "Bash(set ENVIRONMENT=production)",
+      "Bash(set DEBUG=False)",
+      "Bash(set ALLOWED_HOSTS=localhost,127.0.0.1)",
+      "Bash(venv/Scripts/gunicorn.exe:*)",
+      "Bash(venv/Scripts/pip.exe:*)",
+      "Bash(findstr:*)",
+      "Bash(venv/Scripts/playwright.exe show-trace:*)",
+      "Bash(set:*)"
     ],
     "deny": [],
     "ask": []
