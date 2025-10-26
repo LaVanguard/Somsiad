@@ -183,3 +183,8 @@ ACCOUNT_LOGOUT_ON_GET = True  # Allow logout via GET request (skip confirmation 
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
+
+# Django-ratelimit settings
+# Cache configuration is in development.py and production.py
+# Development: DummyCache (disabled)
+# Production: Redis or DatabaseCache

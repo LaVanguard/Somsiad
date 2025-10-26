@@ -123,3 +123,30 @@ SERVER_EMAIL = config('SERVER_EMAIL', default='noreply@somsiad.pl')
 # EMAIL_USE_TLS = True
 # EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 # EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+
+# Cache Configuration - Production
+# Use Redis for rate limiting (Railway provides REDIS_URL)
+# Fallback to database cache if Redis not available
+REDIS_URL = config('REDIS_URL', default=None)
+
+if REDIS_URL:
+    # Railway Redis (recommended for production)
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+        }
+    }
+else:
+    # Fallback: Database cache (works but slower)
+    # Run: python manage.py createcachetable
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+            'LOCATION': 'django_cache_table',
+        }
+    }
+
+# Rate limiting enabled in production
+RATELIMIT_ENABLE = True
+RATELIMIT_USE_CACHE = 'default'
