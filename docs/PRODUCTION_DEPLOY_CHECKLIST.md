@@ -30,6 +30,51 @@
 
 ## 🔑 Environment Variables for Railway
 
+**DATABASE ARCHITECTURE:** All-in-Supabase (1 database)
+
+```
+┌─────────────────────────────────────────────────────┐
+│                    RAILWAY                          │
+│  ┌──────────────────────────────────────────┐      │
+│  │   Django App (Gunicorn)                  │      │
+│  │   - Views, Templates, Logic              │      │
+│  │   - Static files (WhiteNoise)            │      │
+│  └──────────────┬───────────────────────────┘      │
+│                 │                                   │
+│                 ▼                                   │
+│         No Railway PostgreSQL!                     │
+└─────────────────┼───────────────────────────────────┘
+                  │
+                  │ DATABASE_URL
+                  │
+                  ▼
+┌─────────────────────────────────────────────────────┐
+│                   SUPABASE                          │
+│  ┌──────────────────────────────────────────┐      │
+│  │  PostgreSQL + pgvector                   │      │
+│  │  ┌────────────────┬──────────────────┐   │      │
+│  │  │ Django Tables  │ Embeddings Table │   │      │
+│  │  │ - User         │ - id (UUID)      │   │      │
+│  │  │ - Document     │ - embedding      │   │      │
+│  │  │ - Conversation │ - content        │   │      │
+│  │  │ - Query        │ - metadata       │   │      │
+│  │  │ - Embedding    │                  │   │      │
+│  │  └────────────────┴──────────────────┘   │      │
+│  └──────────────────────────────────────────┘      │
+│         ▲                            ▲              │
+│         │ Django ORM                 │ Vector Search│
+│         │                            │ (match_emb.) │
+└─────────┴────────────────────────────┴──────────────┘
+```
+
+**Benefits:**
+- ✅ One database = simpler management
+- ✅ Supabase free tier (500MB storage, 500MB transfer/month)
+- ✅ pgvector already configured
+- ✅ No Railway database costs
+
+**DO NOT add PostgreSQL in Railway!** We use Supabase for everything.
+
 Copy these to Railway dashboard → Variables:
 
 ```bash
@@ -41,20 +86,37 @@ SECRET_KEY=mkoceau*-=)10pu*l1r5@a%n!7xg4i28cv3#xq9gp4=!whbf#c
 DEBUG=False
 ALLOWED_HOSTS=your-app.railway.app
 
-# OpenAI (REQUIRED)
-OPENAI_API_KEY=sk-your-key-here
+# Supabase PostgreSQL (Django main database)
+# Get from Supabase dashboard → Settings → Database
+SUPABASE_DB_HOST=db.xxx.supabase.co
+SUPABASE_DB_PASSWORD=your-supabase-db-password
 
-# Supabase Vector DB (REQUIRED)
+# OR use DATABASE_URL format (recommended):
+DATABASE_URL=postgresql://postgres.xxx:your-password@aws-0-eu-central-1.pooler.supabase.com:6543/postgres
+
+# Supabase Vector DB (same database, pgvector extension)
+# Get from Supabase dashboard → Settings → API
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_KEY=your-anon-key-here
+SUPABASE_KEY=your-anon-public-key-here
 
-# Railway PostgreSQL (auto-provided, verify it exists)
-# DATABASE_URL=postgresql://... (Railway adds this automatically)
+# OpenAI (REQUIRED for RAG)
+OPENAI_API_KEY=sk-your-key-here
 
 # Email (OPTIONAL)
 ADMIN_EMAIL=your-email@example.com
 SERVER_EMAIL=noreply@somsiad.pl
 ```
+
+**How to get Supabase credentials:**
+1. Go to https://supabase.com/dashboard
+2. Select your project
+3. **Database credentials:**
+   - Settings → Database → Connection string → URI
+   - Copy the connection pooler URL (port 6543)
+   - Example: `postgresql://postgres.xxx:[YOUR-PASSWORD]@aws-0-eu-central-1.pooler.supabase.com:6543/postgres`
+4. **API credentials:**
+   - Settings → API → Project URL (SUPABASE_URL)
+   - Settings → API → anon public key (SUPABASE_KEY)
 
 ---
 
@@ -75,21 +137,37 @@ git push origin feature/sprint2-rag-core
 3. Select `Law_Advisor` repository
 4. Select branch: `feature/sprint2-rag-core` (or `main` after merge)
 
-### Step 3: Add PostgreSQL Database
+### Step 3: Skip Railway PostgreSQL (We use Supabase!)
 
-1. In Railway project → Click "+ New" → "Database" → "PostgreSQL"
-2. Railway auto-generates `DATABASE_URL` environment variable
-3. Verify it appears in "Variables" tab
+**IMPORTANT:** Do NOT add PostgreSQL database in Railway!
+
+We use Supabase PostgreSQL for everything:
+- ✅ Django models (User, Document, Conversation, Query)
+- ✅ Vector embeddings (pgvector extension)
+- ✅ One database to manage
+- ✅ Free tier (500MB storage)
+
+Skip this step and go to Step 4.
 
 ### Step 4: Configure Environment Variables
 
 1. Click on your Django service → "Variables" tab
-2. Add ALL variables from section above (🔑)
-3. **CRITICAL:** Replace placeholders:
-   - `OPENAI_API_KEY` → your actual OpenAI key
-   - `SUPABASE_URL` → your Supabase project URL
-   - `SUPABASE_KEY` → your Supabase anon key
-   - `ALLOWED_HOSTS` → your Railway domain (e.g., `somsiad.up.railway.app`)
+2. Click "New Variable" and add ALL from section above (🔑)
+3. **CRITICAL:** Replace placeholders with YOUR actual values:
+
+**Get from Supabase Dashboard (https://supabase.com/dashboard):**
+- `DATABASE_URL` → Settings → Database → Connection string (URI, pooler mode, port 6543)
+- `SUPABASE_URL` → Settings → API → Project URL
+- `SUPABASE_KEY` → Settings → API → Project API keys → anon public
+
+**Get from OpenAI (https://platform.openai.com/api-keys):**
+- `OPENAI_API_KEY` → Create new key → Copy
+
+**Generate yourself:**
+- `SECRET_KEY` → Use the one provided: `mkoceau*-=)10pu*l1r5@a%n!7xg4i28cv3#xq9gp4=!whbf#c`
+- `ALLOWED_HOSTS` → Your Railway domain (will appear after first deploy, e.g., `somsiad-production.up.railway.app`)
+
+**IMPORTANT:** Use DATABASE_URL format (recommended) OR separate SUPABASE_DB_* variables, NOT both!
 
 ### Step 5: Deploy
 
