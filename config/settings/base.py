@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
+    'django_ratelimit',
 
     # Local apps
     'accounts',
@@ -174,7 +175,9 @@ AUTHENTICATION_BACKENDS = [
 
 # Django-allauth settings
 ACCOUNT_LOGIN_METHODS = {'email'}
-ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
+
+# DISABLE PUBLIC SIGNUP - Admin-only user creation
+ACCOUNT_ADAPTER = 'accounts.adapters.NoSignupAccountAdapter'
 ACCOUNT_EMAIL_VERIFICATION = 'none'
 ACCOUNT_LOGOUT_ON_GET = True  # Allow logout via GET request (skip confirmation page)
 LOGIN_URL = '/accounts/login/'

@@ -20,6 +20,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 from accounts.views import home, query_api, query_stream_api
+from accounts.signup_blocked_view import signup_blocked
 from knowledge.document_views import (
     upload_document,
     process_document,
@@ -41,7 +42,13 @@ from queries.profile_views import (
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+
+    # BLOCK SIGNUP - Override allauth signup URLs
+    path('accounts/signup/', signup_blocked, name='account_signup'),
+
+    # Allow login and other auth endpoints
     path('accounts/', include('allauth.urls')),
+
     path('', home, name='home'),
     path('api/query/', query_api, name='query_api'),
     path('api/query/stream/', query_stream_api, name='query_stream_api'),

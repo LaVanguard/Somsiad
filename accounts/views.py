@@ -11,6 +11,7 @@ import time
 from knowledge.services.rag_service import RAGService
 from knowledge.models import Document
 from queries.models import Query, Conversation
+from .ratelimit_decorators import ratelimit_rag_query
 
 logger = logging.getLogger(__name__)
 
@@ -184,6 +185,7 @@ def query_api(request):
 
 @require_http_methods(["POST"])
 @login_required
+@ratelimit_rag_query
 def query_stream_api(request):
     """
     Streaming chat API endpoint with RAG integration.

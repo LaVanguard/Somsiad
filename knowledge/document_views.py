@@ -12,12 +12,14 @@ import logging
 from knowledge.models import Document
 from knowledge.services.document_processor import DocumentProcessor
 from accounts.decorators import ajax_login_required
+from accounts.ratelimit_decorators import ratelimit_document_upload, ratelimit_document_process
 
 logger = logging.getLogger(__name__)
 
 
 @require_http_methods(["POST"])
 @login_required
+@ratelimit_document_upload
 def upload_document(request):
     """Upload a new document via HTMX."""
     title = request.POST.get('title', '').strip()
@@ -74,6 +76,7 @@ def upload_document(request):
 
 @require_http_methods(["POST"])
 @login_required
+@ratelimit_document_process
 def process_document(request, document_id):
     """Process a single document (generate embeddings)."""
     document = get_object_or_404(Document, id=document_id)
@@ -117,6 +120,7 @@ def process_document(request, document_id):
 
 @require_http_methods(["POST"])
 @login_required
+@ratelimit_document_process
 def process_all_documents(request):
     """Process all unprocessed documents."""
     unprocessed = Document.objects.filter(processed=False)

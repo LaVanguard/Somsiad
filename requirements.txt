@@ -48,3 +48,6 @@ tiktoken==0.8.0
 # Production (Static Files & WSGI Server)
 whitenoise==6.11.0
 gunicorn==23.0.0
+
+# Security (Rate Limiting & Bot Protection)
+django-ratelimit==4.1.0
