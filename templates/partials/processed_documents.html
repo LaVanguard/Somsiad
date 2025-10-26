@@ -1,11 +1,10 @@
 {% for doc in documents %}
-<div class="px-3 py-2 bg-gray-700 rounded-lg group hover:bg-gray-600 transition">
+<div class="px-3 py-2 bg-gradient-card rounded-lg group card-depth border border-gray-600/50">
     <div class="flex items-start justify-between gap-2">
         <div class="flex-1 min-w-0">
             <div class="text-sm truncate font-medium">{{ doc.title }}</div>
             <div class="text-xs text-gray-400 mt-1">
-                <span class="inline-block px-2 py-0.5 bg-gray-600 rounded text-xs">{{ doc.category }}</span>
-                <span class="ml-2">{{ doc.embeddings.count }} chunków</span>
+                <span>{{ doc.embeddings.count }} chunków</span>
             </div>
         </div>
         <div class="flex gap-1">
@@ -14,7 +13,7 @@
                 hx-target="#document-status"
                 hx-indicator="#reprocess-spinner-{{ doc.id }}"
                 hx-on::before-request="document.getElementById('document-status').innerHTML = '<div class=\'text-blue-400 text-xs\'>[INFO] Ponowne przetwarzanie...</div>'"
-                class="p-1.5 hover:bg-gray-500 rounded transition"
+                class="p-1.5 hover:bg-gray-500/50 rounded transition-all-smooth hover:scale-110"
                 title="Przetwórz ponownie"
             >
                 <svg id="reprocess-spinner-{{ doc.id }}" class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -25,7 +24,7 @@
                 hx-post="/api/documents/{{ doc.id }}/delete/"
                 hx-target="#document-status"
                 hx-confirm="Czy na pewno usunąć dokument '{{ doc.title }}'? To usunie również wszystkie embeddingi ({{ doc.embeddings.count }} chunków)."
-                class="p-1.5 hover:bg-red-600 rounded transition"
+                class="p-1.5 hover:bg-red-600/80 rounded transition-all-smooth hover:scale-110"
                 title="Usuń dokument"
             >
                 <svg class="w-4 h-4 text-gray-400 hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

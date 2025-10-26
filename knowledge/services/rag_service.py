@@ -3,12 +3,15 @@ RAG Service for document retrieval and LLM generation.
 Sprint 2 implementation.
 """
 import time
+import logging
 from typing import List, Dict, Tuple
 from django.conf import settings
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document as LangChainDocument
 from supabase import create_client, Client
+
+logger = logging.getLogger(__name__)
 
 
 class RAGService:
@@ -103,6 +106,7 @@ class RAGService:
     ) -> List[str]:
         """
         Store embeddings in Supabase pgvector.
+        Inserts in batches to avoid timeout errors.
 
         Args:
             embeddings: List of embedding vectors
@@ -122,12 +126,18 @@ class RAGService:
             for emb, text, meta in zip(embeddings, texts, metadata)
         ]
 
-        # Insert into Supabase
-        response = self.supabase.table("embeddings").insert(records).execute()
+        # Insert in batches of 50 to avoid timeout
+        batch_size = 50
+        all_embedding_ids = []
 
-        # Return IDs
-        embedding_ids = [record["id"] for record in response.data]
-        return embedding_ids
+        for i in range(0, len(records), batch_size):
+            batch = records[i:i + batch_size]
+            response = self.supabase.table("vector_embeddings").insert(batch).execute()
+            batch_ids = [record["id"] for record in response.data]
+            all_embedding_ids.extend(batch_ids)
+            logger.info(f"Inserted batch {i//batch_size + 1}/{(len(records)-1)//batch_size + 1} ({len(batch)} embeddings)")
+
+        return all_embedding_ids
 
     def search_similar_chunks(
         self,

@@ -11,14 +11,25 @@ DEBUG = True
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Database - Supabase PostgreSQL (cloud)
+# Use DATABASE_URL from .env (same as production)
+import dj_database_url
+
+DATABASE_URL = config('DATABASE_URL', default=None)
+
+if DATABASE_URL:
+    # Supabase PostgreSQL (recommended for development)
+    DATABASES = {
+        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600)
     }
-}
+else:
+    # Fallback to SQLite if DATABASE_URL not set
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # CSRF Configuration (for HTMX and AJAX requests)
 CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read CSRF cookie

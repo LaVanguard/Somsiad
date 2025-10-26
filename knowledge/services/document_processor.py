@@ -283,10 +283,10 @@ class DocumentProcessor:
             embedding_ids = [emb.embedding_id for emb in old_embeddings]
             old_embeddings.delete()
 
-            # 2. Delete old embeddings from Supabase
+            # 2. Delete old embeddings from Supabase vector_embeddings table
             if embedding_ids:
                 for emb_id in embedding_ids:
-                    self.rag_service.supabase.table("embeddings").delete().eq("id", emb_id).execute()
+                    self.rag_service.supabase.table("vector_embeddings").delete().eq("id", emb_id).execute()
                 logger.info(f"Deleted {len(embedding_ids)} old embeddings")
 
             # 3. Mark as unprocessed and reprocess

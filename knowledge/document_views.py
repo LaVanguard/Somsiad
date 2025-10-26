@@ -22,16 +22,9 @@ logger = logging.getLogger(__name__)
 @ratelimit_document_upload
 def upload_document(request):
     """Upload a new document via HTMX."""
-    title = request.POST.get('title', '').strip()
-    category = request.POST.get('category', 'budowa')
     file = request.FILES.get('file')
 
     # Validation
-    if not title:
-        return HttpResponse(
-            '<div class="text-red-400">❌ Podaj tytuł dokumentu</div>'
-        )
-
     if not file:
         return HttpResponse(
             '<div class="text-red-400">❌ Wybierz plik PDF</div>'
@@ -43,6 +36,10 @@ def upload_document(request):
         )
 
     try:
+        # Auto-generate title from filename (remove .pdf extension and clean up)
+        title = file.name.rsplit('.', 1)[0]  # Remove .pdf extension
+        category = 'document'  # Default category (not used in RAG)
+
         # Create document
         document = Document.objects.create(
             title=title,
@@ -203,7 +200,7 @@ def delete_document(request, document_id):
         embeddings = document.embeddings.all()
         for emb in embeddings:
             try:
-                rag.supabase.table("embeddings").delete().eq("id", emb.embedding_id).execute()
+                rag.supabase.table("vector_embeddings").delete().eq("id", emb.embedding_id).execute()
             except Exception as e:
                 logger.warning(f"Failed to delete embedding {emb.embedding_id} from Supabase: {e}")
 
