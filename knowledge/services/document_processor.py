@@ -188,6 +188,16 @@ class DocumentProcessor:
             document.processed = True
             document.save()
 
+            # 11. Sprint 8: Rebuild BM25 index after adding new document
+            logger.info("Rebuilding BM25 index...")
+            try:
+                from knowledge.services.bm25_service import BM25Service
+                bm25 = BM25Service()
+                stats = bm25.rebuild_index()
+                logger.info(f"BM25 index rebuilt: {stats['total_chunks']} chunks indexed")
+            except Exception as e:
+                logger.warning(f"Failed to rebuild BM25 index: {e}")
+
             # Log summary statistics
             logger.info(
                 f"✅ Successfully processed {document.title}:\n"
@@ -258,6 +268,17 @@ class DocumentProcessor:
             f"Processing complete: {success_count} succeeded, "
             f"{failed_count} failed out of {total} total"
         )
+
+        # Sprint 8: Rebuild BM25 index after batch processing
+        if success_count > 0:
+            logger.info("Rebuilding BM25 index after batch processing...")
+            try:
+                from knowledge.services.bm25_service import BM25Service
+                bm25 = BM25Service()
+                stats = bm25.rebuild_index()
+                logger.info(f"BM25 index rebuilt: {stats['total_chunks']} chunks indexed")
+            except Exception as e:
+                logger.warning(f"Failed to rebuild BM25 index: {e}")
 
         return {
             "total": total,

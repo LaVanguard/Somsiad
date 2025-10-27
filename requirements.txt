@@ -45,6 +45,10 @@ pypdf2==3.0.1
 python-dotenv==1.0.1
 tiktoken==0.8.0
 
+# RAG 2.0 Optimization (Sprint 8)
+rank-bm25==0.2.2
+sentence-transformers==2.7.0
+
 # Production (Static Files & WSGI Server)
 whitenoise==6.11.0
 gunicorn==23.0.0

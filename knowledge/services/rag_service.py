@@ -1,10 +1,11 @@
 """
 RAG Service for document retrieval and LLM generation.
 Sprint 2 implementation.
+Sprint 8: Added RAG 2.0 hybrid search support.
 """
 import time
 import logging
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 from django.conf import settings
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -18,6 +19,8 @@ class RAGService:
     """
     Retrieval-Augmented Generation service.
     Handles embeddings, vector search, and LLM generation.
+
+    Sprint 8: Now supports hybrid search (BM25 + vector) for better retrieval.
     """
 
     def __init__(self):
@@ -45,6 +48,9 @@ class RAGService:
             chunk_overlap=200,
             length_function=len,
         )
+
+        # Sprint 8: Hybrid search service (lazy loaded)
+        self._hybrid_search_service: Optional['HybridSearchService'] = None
 
     def chunk_document(self, text: str, metadata: Dict = None) -> List[LangChainDocument]:
         """
@@ -288,10 +294,19 @@ Odpowiedź:"""
             if hasattr(chunk, 'content'):
                 yield chunk.content
 
+    @property
+    def hybrid_search_service(self):
+        """Lazy load HybridSearchService to avoid circular imports."""
+        if self._hybrid_search_service is None:
+            from knowledge.services.hybrid_search_service import HybridSearchService
+            self._hybrid_search_service = HybridSearchService(rag_service=self)
+        return self._hybrid_search_service
+
     def process_query(
         self,
         question: str,
-        top_k: int = 5
+        top_k: int = 5,
+        use_hybrid_search: bool = True
     ) -> Tuple[str, List[Dict], float]:
         """
         Full RAG pipeline: retrieve → generate answer.
@@ -299,6 +314,7 @@ Odpowiedź:"""
         Args:
             question: User's question
             top_k: Number of context chunks to retrieve
+            use_hybrid_search: Whether to use hybrid search (BM25 + vector) [Sprint 8]
 
         Returns:
             Tuple of (answer, sources, processing_time)
@@ -306,23 +322,41 @@ Odpowiedź:"""
         start_time = time.time()
 
         # 1. Search for relevant chunks
-        search_results = self.search_similar_chunks(question, top_k=top_k)
+        if use_hybrid_search:
+            # Sprint 8: Hybrid search (BM25 + vector with RRF fusion)
+            logger.info(f"Using hybrid search for query: '{question[:50]}...'")
+            hybrid_results = self.hybrid_search_service.hybrid_search(question, top_k=top_k)
 
-        # 2. Extract context and sources
-        context_chunks = [text for text, _, _ in search_results]
-        sources = [
-            {
-                "text": text[:200] + "..." if len(text) > 200 else text,
-                "metadata": metadata,
-                "similarity": similarity
-            }
-            for text, metadata, similarity in search_results
-        ]
+            # Extract context and sources from hybrid results
+            context_chunks = [chunk['content'] for chunk in hybrid_results]
+            sources = [
+                {
+                    "text": chunk['content'][:200] + "..." if len(chunk['content']) > 200 else chunk['content'],
+                    "metadata": chunk.get('metadata', {}),
+                    "rrf_score": chunk.get('rrf_score', 0.0)
+                }
+                for chunk in hybrid_results
+            ]
+        else:
+            # Original vector-only search
+            logger.info(f"Using vector search for query: '{question[:50]}...'")
+            search_results = self.search_similar_chunks(question, top_k=top_k)
 
-        # 3. Generate answer
+            # Extract context and sources
+            context_chunks = [text for text, _, _ in search_results]
+            sources = [
+                {
+                    "text": text[:200] + "..." if len(text) > 200 else text,
+                    "metadata": metadata,
+                    "similarity": similarity
+                }
+                for text, metadata, similarity in search_results
+            ]
+
+        # 2. Generate answer
         answer = self.generate_answer(question, context_chunks)
 
-        # 4. Calculate processing time
+        # 3. Calculate processing time
         processing_time = time.time() - start_time
 
         return answer, sources, processing_time
