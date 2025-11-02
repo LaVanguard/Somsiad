@@ -36,7 +36,7 @@ class RAGService:
         )
         self.llm = ChatOpenAI(
             openai_api_key=self.openai_api_key,
-            model="gpt-4o-mini",
+            model="gpt-5-mini",
             temperature=0.3
         )
         self.supabase: Client = create_client(self.supabase_url, self.supabase_key)
