@@ -8,7 +8,13 @@
         hx-swap="innerHTML"
         data-conversation-id="{{ conv.id }}"
         class="conversation-item flex-1 text-left px-4 py-3 hover:bg-gray-700 rounded-lg transition overflow-hidden"
-        @click="currentConversationId = {{ conv.id }}; document.getElementById('welcome-state').style.display = 'none';"
+        onclick="
+            const alpineEl = document.querySelector('[x-data]');
+            if (alpineEl && alpineEl._x_dataStack) {
+                alpineEl._x_dataStack[0].currentConversationId = {{ conv.id }};
+            }
+            document.getElementById('welcome-state').style.display = 'none';
+        "
         title="{{ conv.title }}"
     >
         <div class="text-sm truncate mb-1">{{ conv.title }}</div>
@@ -40,7 +46,13 @@
         hx-swap="innerHTML"
         data-conversation-id="{{ conv.id }}"
         class="conversation-item flex-1 text-left px-4 py-3 hover:bg-gray-700 rounded-lg transition overflow-hidden"
-        @click="currentConversationId = {{ conv.id }}; document.getElementById('welcome-state').style.display = 'none';"
+        onclick="
+            const alpineEl = document.querySelector('[x-data]');
+            if (alpineEl && alpineEl._x_dataStack) {
+                alpineEl._x_dataStack[0].currentConversationId = {{ conv.id }};
+            }
+            document.getElementById('welcome-state').style.display = 'none';
+        "
         title="{{ conv.title }}"
     >
         <div class="text-sm truncate mb-1">{{ conv.title }}</div>
@@ -72,7 +84,13 @@
         hx-swap="innerHTML"
         data-conversation-id="{{ conv.id }}"
         class="conversation-item flex-1 text-left px-4 py-3 hover:bg-gray-700 rounded-lg transition overflow-hidden"
-        @click="currentConversationId = {{ conv.id }}; document.getElementById('welcome-state').style.display = 'none';"
+        onclick="
+            const alpineEl = document.querySelector('[x-data]');
+            if (alpineEl && alpineEl._x_dataStack) {
+                alpineEl._x_dataStack[0].currentConversationId = {{ conv.id }};
+            }
+            document.getElementById('welcome-state').style.display = 'none';
+        "
         title="{{ conv.title }}"
     >
         <div class="text-sm truncate mb-1">{{ conv.title }}</div>
