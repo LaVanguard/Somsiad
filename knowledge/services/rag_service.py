@@ -9,7 +9,7 @@ from typing import List, Dict, Tuple, Optional
 from django.conf import settings
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.schema import Document as LangChainDocument
+from langchain.schema import Document as LangChainDocument, SystemMessage, HumanMessage
 from supabase import create_client, Client
 
 logger = logging.getLogger(__name__)
@@ -233,15 +233,14 @@ Format odpowiedzi:
         # Get system prompt from database
         system_prompt = self._get_system_prompt()
 
-        # Build prompt with context
+        # Build context from chunks
         context = "\n\n".join([
             f"[Fragment {i+1}]\n{chunk}"
             for i, chunk in enumerate(context_chunks)
         ])
 
-        prompt = f"""{system_prompt}
-
-Kontekst prawny:
+        # Build user message with context and question
+        user_message = f"""Kontekst prawny:
 {context}
 
 Pytanie użytkownika:
@@ -249,8 +248,14 @@ Pytanie użytkownika:
 
 Odpowiedź:"""
 
+        # Create messages with proper system/user roles
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_message)
+        ]
+
         # Generate answer
-        response = self.llm.invoke(prompt)
+        response = self.llm.invoke(messages)
         answer = response.content
 
         return answer
@@ -273,15 +278,14 @@ Odpowiedź:"""
         # Get system prompt from database
         system_prompt = self._get_system_prompt()
 
-        # Build prompt with context
+        # Build context from chunks
         context = "\n\n".join([
             f"[Fragment {i+1}]\n{chunk}"
             for i, chunk in enumerate(context_chunks)
         ])
 
-        prompt = f"""{system_prompt}
-
-Kontekst prawny:
+        # Build user message with context and question
+        user_message = f"""Kontekst prawny:
 {context}
 
 Pytanie użytkownika:
@@ -289,8 +293,14 @@ Pytanie użytkownika:
 
 Odpowiedź:"""
 
+        # Create messages with proper system/user roles
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_message)
+        ]
+
         # Stream answer chunks
-        for chunk in self.llm.stream(prompt):
+        for chunk in self.llm.stream(messages):
             if hasattr(chunk, 'content'):
                 yield chunk.content
 
