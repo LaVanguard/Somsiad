@@ -7,34 +7,38 @@
 
 ## 🎯 Current Production Models
 
-### **Primary LLM: GPT-5 Mini**
+### **Primary LLM: GPT-4o-mini**
 
-**Model ID:** `gpt-5-mini`
+**Model ID:** `gpt-4o-mini`
 
-**Release Date:** August 7, 2025 (OpenAI)
+**Status:** ✅ **ACTIVE** (Rolled back from GPT-5-mini on 2025-11-02)
 
-**Why GPT-5 Mini:**
-- ✅ Latest generation model (successor to GPT-4o-mini)
-- ✅ Cost-optimized for production use
-- ✅ Improved reasoning capabilities vs GPT-4o-mini
-- ✅ Lower latency than full GPT-5
-- ✅ Better instruction following and safety tuning
-- ✅ Supports verbosity parameter for answer length control
-- ✅ Reduced latency with `reasoning_effort: minimal`
+**Why GPT-4o-mini:**
+- ✅ No organization verification required
+- ✅ Full streaming support
+- ✅ Custom temperature support (0.0-2.0)
+- ✅ Excellent quality/cost ratio
+- ✅ Very stable API
+- ✅ Proven reliability in production
+- ✅ Good reasoning capabilities
 
 **Pricing (OpenAI API):**
-- Input: ~$0.15-0.20 / 1M tokens (estimated, check latest pricing)
-- Output: ~$0.60-0.80 / 1M tokens (estimated)
+- Input: $0.150 / 1M tokens
+- Output: $0.600 / 1M tokens
 
 **Used In:**
-- `knowledge/services/rag_service.py:39` - Main RAG answer generation
-- `knowledge/services/summarizer.py:27` - Document summarization
-- `accounts/views.py:321` - Conversation title generation
+- `knowledge/services/rag_service.py:37-41` - Main RAG answer generation
+- `knowledge/services/summarizer.py:25-29` - Document summarization
+- `knowledge/services/memetic_actions_service.py:24-28` - Memetic actions
+- `accounts/views.py:319-323` - Conversation title generation
 
 **Temperature Settings:**
 - RAG answers: `0.3` (balanced creativity/precision)
 - Summarization: `0.2` (more consistent, factual)
+- Memetic actions: `0.2` (formal, consistent tone)
 - Title generation: `0.3` (balanced)
+
+**Migration Note:** Previously attempted GPT-5-mini but required organization verification for streaming. Rolled back to GPT-4o-mini for immediate production use. See `ROLLBACK_TO_GPT4O_MINI.md`.
 
 ---
 

@@ -1,0 +1,113 @@
+<!-- Prosecutor Modal -->
+<div x-show="showProsecutorModal"
+     x-cloak
+     @keydown.escape.window="showProsecutorModal = false"
+     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+     @click.self="showProsecutorModal = false">
+
+    <div class="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col">
+        <!-- Header -->
+        <div class="flex items-center justify-between p-6 border-b border-gray-200">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800">⚖️ Pismo do Prokuratury Rejonowej</h3>
+            </div>
+            <button @click="showProsecutorModal = false" class="text-gray-400 hover:text-gray-600 transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-6">
+            <!-- Loading State -->
+            <div x-show="generatingLetter" class="text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-4"></div>
+                <p class="text-lg font-semibold text-gray-700">Generuję profesjonalne pismo...</p>
+                <p class="text-sm text-gray-500 mt-2">AI analizuje sprawę i tworzy formalne zawiadomienie</p>
+            </div>
+
+            <!-- Generated Letter -->
+            <div x-show="!generatingLetter && !sendingLetter && !letterSent" class="space-y-4">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p class="text-sm text-blue-800">
+                        <strong>💡 Wskazówka:</strong> Możesz edytować poniższy tekst przed "wysłaniem".
+                        Pamiętaj - to tylko symulacja, nic nie zostanie wysłane naprawdę!
+                    </p>
+                </div>
+
+                <textarea
+                    x-model="prosecutorLetter"
+                    rows="18"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Wygenerowane pismo pojawi się tutaj..."
+                ></textarea>
+            </div>
+
+            <!-- Sending Animation -->
+            <div x-show="sendingLetter" class="text-center py-12">
+                <div class="space-y-6">
+                    <p class="text-lg font-semibold text-gray-700" x-text="sendingMessage"></p>
+                    <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                        <div class="bg-blue-600 h-3 rounded-full transition-all duration-1000 ease-out"
+                             :style="`width: ${sendingProgress}%`"></div>
+                    </div>
+                    <p class="text-xs text-gray-500">Symulacja wysyłki...</p>
+                </div>
+            </div>
+
+            <!-- Success Message -->
+            <div x-show="letterSent" class="text-center py-12">
+                <div class="mb-6 text-7xl animate-bounce">✅</div>
+                <h4 class="text-2xl font-bold text-green-600 mb-3">Pismo wysłane!</h4>
+                <p class="text-gray-700 mb-2">
+                    Twoje zawiadomienie zostało przekazane do Prokuratury Rejonowej.
+                </p>
+                <p class="text-gray-600 mb-4">
+                    Numer sprawy: <strong class="font-mono" x-text="fakeRefNumber"></strong>
+                </p>
+                <div class="inline-block bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4 my-4">
+                    <p class="text-lg font-semibold text-yellow-800">
+                        😄 To był żart!
+                    </p>
+                    <p class="text-sm text-yellow-700 mt-1">
+                        Nic nie zostało wysłane naprawdę. To tylko edukacyjna symulacja procesu.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Actions -->
+        <div x-show="!generatingLetter && !sendingLetter && !letterSent" class="p-6 border-t border-gray-200 bg-gray-50">
+            <div class="flex gap-3 justify-end">
+                <button
+                    @click="showProsecutorModal = false"
+                    class="px-5 py-2.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg transition font-medium">
+                    Anuluj
+                </button>
+                <button
+                    @click="sendProsecutorLetter()"
+                    class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-medium flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                    </svg>
+                    Wyślij do Prokuratury
+                </button>
+            </div>
+        </div>
+
+        <!-- Close Button After Sent -->
+        <div x-show="letterSent" class="p-6 border-t border-gray-200 bg-gray-50">
+            <button
+                @click="showProsecutorModal = false; resetProsecutorModal()"
+                class="w-full px-5 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition font-medium">
+                Zamknij
+            </button>
+        </div>
+    </div>
+</div>

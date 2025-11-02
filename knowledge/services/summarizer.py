@@ -24,7 +24,7 @@ class DocumentSummarizer:
         """Initialize summarizer with LLM."""
         self.llm = ChatOpenAI(
             openai_api_key=settings.OPENAI_API_KEY,
-            model="gpt-5-mini",
+            model="gpt-4o-mini",
             temperature=0.2  # Lower for more consistent summaries
         )
 

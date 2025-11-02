@@ -40,7 +40,7 @@ RAG_CONFIG = {
     'EMBEDDING_DIMENSION': 1536,
 
     # Generation Configuration
-    'GENERATION_MODEL': 'gpt-5-mini',
+    'GENERATION_MODEL': 'gpt-4o-mini',
     'TEMPERATURE': 0.3,  # Low temperature for factual accuracy
 
     # Vector Search Configuration

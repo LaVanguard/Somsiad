@@ -14,7 +14,282 @@
     activeTab: 'conversations',
     currentConversationId: null,
     currentAnswer: '',
-    streamingMessageId: null
+    streamingMessageId: null,
+
+    // Prosecutor Modal State
+    showProsecutorModal: false,
+    generatingLetter: false,
+    prosecutorLetter: '',
+    sendingLetter: false,
+    sendingMessage: '',
+    sendingProgress: 0,
+    letterSent: false,
+    fakeRefNumber: '',
+
+    // Donos Modal State
+    showDonosModal: false,
+    generatingDonos: false,
+    donosSubject: '',
+    donosBody: '',
+    donosFiles: [],
+    sendingDonos: false,
+    sendingDonosMessage: '',
+    sendingDonosProgress: 0,
+    donosSent: false,
+
+    // Straz Modal State
+    showStrazModal: false,
+    callConnected: false,
+    callEnded: false,
+    callMessages: [],
+    callTimer: '00:00',
+    callInterval: null,
+
+    // Memetic Actions Methods
+    generateProsecutorLetter(userQuestion, aiAnswer) {
+        this.showProsecutorModal = true;
+        this.generatingLetter = true;
+        this.prosecutorLetter = '';
+
+        fetch('/api/actions/prosecutor/generate/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({ question: userQuestion, ai_answer: aiAnswer })
+        })
+        .then(res => res.json())
+        .then(data => {
+            this.generatingLetter = false;
+            this.prosecutorLetter = data.letter;
+        })
+        .catch(err => {
+            this.generatingLetter = false;
+            this.prosecutorLetter = 'Błąd generowania pisma. Spróbuj ponownie.';
+            console.error(err);
+        });
+    },
+
+    sendProsecutorLetter() {
+        this.sendingLetter = true;
+        this.sendingProgress = 0;
+        this.sendingMessage = 'Łączenie z e-PUAP...';
+
+        // Simulate sending with progress animation
+        const steps = [
+            { progress: 20, message: 'Łączenie z e-PUAP...', delay: 500 },
+            { progress: 40, message: 'Weryfikacja dostępu...', delay: 800 },
+            { progress: 60, message: 'Szyfrowanie dokumentu...', delay: 1000 },
+            { progress: 80, message: 'Wysyłanie do Prokuratury...', delay: 1200 },
+            { progress: 100, message: 'Potwierdzenie dostarczenia...', delay: 1500 }
+        ];
+
+        let stepIndex = 0;
+        const processStep = () => {
+            if (stepIndex < steps.length) {
+                const step = steps[stepIndex];
+                setTimeout(() => {
+                    this.sendingProgress = step.progress;
+                    this.sendingMessage = step.message;
+                    stepIndex++;
+                    processStep();
+                }, step.delay);
+            } else {
+                // Generate fake reference number
+                this.fakeRefNumber = 'PR-' + Math.floor(Math.random() * 9000 + 1000) + '/2025';
+                this.sendingLetter = false;
+                this.letterSent = true;
+            }
+        };
+        processStep();
+    },
+
+    resetProsecutorModal() {
+        this.prosecutorLetter = '';
+        this.sendingLetter = false;
+        this.letterSent = false;
+        this.sendingProgress = 0;
+    },
+
+    generateDonosEmail(userQuestion, aiAnswer) {
+        this.showDonosModal = true;
+        this.generatingDonos = true;
+        this.donosSubject = '';
+        this.donosBody = '';
+
+        fetch('/api/actions/donos/generate/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({ question: userQuestion, ai_answer: aiAnswer })
+        })
+        .then(res => res.json())
+        .then(data => {
+            this.generatingDonos = false;
+            this.donosSubject = data.subject;
+            this.donosBody = data.body;
+        })
+        .catch(err => {
+            this.generatingDonos = false;
+            this.donosSubject = 'Błąd';
+            this.donosBody = 'Błąd generowania emaila. Spróbuj ponownie.';
+            console.error(err);
+        });
+    },
+
+    handleDonosFiles(event) {
+        const files = Array.from(event.target.files);
+        if (this.donosFiles.length + files.length > 5) {
+            alert('Maksymalnie 5 plików');
+            return;
+        }
+
+        files.forEach(file => {
+            if (file.size > 10 * 1024 * 1024) {
+                alert('Plik ' + file.name + ' jest za duży (max 10MB)');
+                return;
+            }
+            this.donosFiles.push(file);
+        });
+    },
+
+    removeDonosFile(index) {
+        this.donosFiles.splice(index, 1);
+    },
+
+    getFileIcon(fileType) {
+        if (fileType.startsWith('image/')) return '📷';
+        if (fileType.startsWith('video/')) return '🎥';
+        if (fileType.startsWith('audio/')) return '🎵';
+        return '📎';
+    },
+
+    formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    },
+
+    sendDonosEmail() {
+        this.sendingDonos = true;
+        this.sendingDonosProgress = 0;
+        this.sendingDonosMessage = 'Anonimizacja nadawcy...';
+
+        const steps = [
+            { progress: 15, message: 'Anonimizacja nadawcy...', delay: 400 },
+            { progress: 30, message: 'Szyfrowanie załączników...', delay: 800 },
+            { progress: 50, message: 'Usuwanie metadanych z plików...', delay: 1000 },
+            { progress: 70, message: 'Routing przez TOR...', delay: 1200 },
+            { progress: 85, message: 'Wysyłanie do Urzędu Gminy...', delay: 1400 },
+            { progress: 100, message: 'Email dostarczony!', delay: 1600 }
+        ];
+
+        let stepIndex = 0;
+        const processStep = () => {
+            if (stepIndex < steps.length) {
+                const step = steps[stepIndex];
+                setTimeout(() => {
+                    this.sendingDonosProgress = step.progress;
+                    this.sendingDonosMessage = step.message;
+                    stepIndex++;
+                    processStep();
+                }, step.delay);
+            } else {
+                this.sendingDonos = false;
+                this.donosSent = true;
+            }
+        };
+        processStep();
+    },
+
+    resetDonosModal() {
+        this.donosSubject = '';
+        this.donosBody = '';
+        this.donosFiles = [];
+        this.sendingDonos = false;
+        this.donosSent = false;
+        this.sendingDonosProgress = 0;
+    },
+
+    startStrazCall(userQuestion, aiAnswer) {
+        this.showStrazModal = true;
+        this.callConnected = false;
+        this.callEnded = false;
+        this.callMessages = [];
+        this.callTimer = '00:00';
+
+        // Simulate ringing for 2-3 seconds
+        setTimeout(() => {
+            this.callConnected = true;
+
+            // Fetch conversation script from backend
+            fetch('/api/actions/straz/call/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({ question: userQuestion, ai_answer: aiAnswer })
+            })
+            .then(res => res.json())
+            .then(data => {
+                // Display messages one by one
+                let messageIndex = 0;
+                const displayMessage = () => {
+                    if (messageIndex < data.messages.length) {
+                        this.callMessages.push({
+                            id: messageIndex,
+                            sender: data.messages[messageIndex].sender,
+                            text: data.messages[messageIndex].text
+                        });
+                        messageIndex++;
+                        setTimeout(displayMessage, 2000); // 2 seconds between messages
+                    }
+                };
+                displayMessage();
+            })
+            .catch(err => {
+                this.callMessages.push({
+                    id: 0,
+                    sender: 'operator',
+                    text: 'Straż Miejska, słucham.'
+                });
+                console.error(err);
+            });
+
+            // Start call timer
+            let seconds = 0;
+            this.callInterval = setInterval(() => {
+                seconds++;
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                this.callTimer = String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+            }, 1000);
+        }, 2500);
+    },
+
+    endCall() {
+        if (this.callInterval) {
+            clearInterval(this.callInterval);
+            this.callInterval = null;
+        }
+        this.callConnected = false;
+        this.callEnded = true;
+    },
+
+    resetStrazModal() {
+        this.callMessages = [];
+        this.callTimer = '00:00';
+        this.callConnected = false;
+        this.callEnded = false;
+        if (this.callInterval) {
+            clearInterval(this.callInterval);
+            this.callInterval = null;
+        }
+    }
 }">
     <!-- Left Sidebar -->
     <div
@@ -359,6 +634,11 @@
         x-transition:leave-start="opacity-100"
         x-transition:leave-end="opacity-0"
     ></div>
+
+    <!-- Memetic Action Modals -->
+    {% include 'partials/prosecutor_modal.html' %}
+    {% include 'partials/donos_modal.html' %}
+    {% include 'partials/straz_modal.html' %}
 </div>
 
 <style>

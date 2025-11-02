@@ -318,7 +318,7 @@ def _generate_conversation_title(question: str, answer: str) -> str:
 
         llm = ChatOpenAI(
             openai_api_key=settings.OPENAI_API_KEY,
-            model="gpt-5-mini",
+            model="gpt-4o-mini",
             temperature=0.3
         )
 

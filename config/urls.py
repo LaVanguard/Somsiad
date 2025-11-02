@@ -39,6 +39,11 @@ from queries.profile_views import (
     get_profile_sidebar,
     update_system_prompt
 )
+from accounts.memetic_views import (
+    generate_prosecutor_letter,
+    generate_donos_email,
+    generate_straz_call_script
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -70,6 +75,11 @@ urlpatterns = [
     # Profile endpoints
     path('api/profile/', get_profile_sidebar, name='get_profile'),
     path('api/profile/update-prompt/', update_system_prompt, name='update_system_prompt'),
+
+    # Memetic Actions (Sprint 9)
+    path('api/actions/prosecutor/generate/', generate_prosecutor_letter, name='generate_prosecutor_letter'),
+    path('api/actions/donos/generate/', generate_donos_email, name='generate_donos_email'),
+    path('api/actions/straz/call/', generate_straz_call_script, name='generate_straz_call'),
 ]
 
 # Serve media files in development
