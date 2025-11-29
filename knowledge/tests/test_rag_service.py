@@ -229,7 +229,7 @@ def test_process_query_full_pipeline(mock_openai_query_embedding, mock_openai_ch
     rag = RAGService()
 
     question = "Jakie są minimalne odległości od granicy?"
-    answer, sources, processing_time = rag.process_query(question, top_k=5)
+    answer, sources, processing_time = rag.process_query(question, top_k=5, use_hybrid_search=False)
 
     # Verify answer
     assert isinstance(answer, str)
@@ -271,7 +271,7 @@ def test_process_query_truncates_long_sources(mock_openai_query_embedding, mock_
     with patch.object(rag.supabase, 'rpc') as mock_rpc:
         mock_rpc.return_value.execute.return_value = mock_response
 
-        _, sources, _ = rag.process_query("question", top_k=1)
+        _, sources, _ = rag.process_query("question", top_k=1, use_hybrid_search=False)
 
     # Verify source text is truncated to ~200 chars + "..."
     assert len(sources[0]['text']) <= 205
@@ -394,7 +394,7 @@ def test_process_query_with_custom_top_k(mock_openai_query_embedding, mock_opena
     with patch.object(rag.supabase, 'rpc') as mock_rpc:
         mock_rpc.return_value.execute.return_value = mock_response
 
-        _, sources, _ = rag.process_query("question", top_k=3)
+        _, sources, _ = rag.process_query("question", top_k=3, use_hybrid_search=False)
 
     # Should return 3 sources
     assert len(sources) == 3

@@ -107,18 +107,16 @@ def test_document_upload_success(mock_user):
     )
 
     response = client.post('/api/documents/upload/', {
-        'title': 'Prawo Budowlane',
-        'file': fake_pdf,
-        'category': 'prawo_budowlane'
+        'file': fake_pdf
     })
 
-    # Should redirect or return success
-    assert response.status_code in [200, 201, 302]
+    # Should return success (200 with HTMX response)
+    assert response.status_code == 200
 
-    # Verify document was created
-    assert Document.objects.filter(title='Prawo Budowlane').exists()
-    doc = Document.objects.get(title='Prawo Budowlane')
-    assert doc.category == 'prawo_budowlane'
+    # Verify document was created (title is extracted from filename)
+    assert Document.objects.filter(title='prawo_budowlane').exists()
+    doc = Document.objects.get(title='prawo_budowlane')
+    assert doc.category == 'document'  # Default category
     assert doc.processed == False  # Should start as unprocessed
 
 
@@ -251,15 +249,13 @@ def test_full_document_workflow_integration(mock_user):
     )
 
     upload_response = client.post('/api/documents/upload/', {
-        'title': 'Ustawa Budowlana',
-        'file': fake_pdf,
-        'category': 'prawo_budowlane'
+        'file': fake_pdf
     })
 
-    assert upload_response.status_code in [200, 201, 302]
+    assert upload_response.status_code == 200
 
-    # Verify document exists
-    doc = Document.objects.get(title='Ustawa Budowlana')
+    # Verify document exists (title is extracted from filename)
+    doc = Document.objects.get(title='ustawa_budowlana')
     assert doc is not None
 
     # Step 2: Trigger processing (optional - depends on implementation)
