@@ -4,8 +4,9 @@ Priority 2 Task - Schema Verification
 """
 import os
 import sys
-from supabase import create_client
+
 from dotenv import load_dotenv
+from supabase import create_client
 
 # Fix Windows encoding for Unicode symbols
 if sys.platform == 'win32':

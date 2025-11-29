@@ -8,11 +8,13 @@ Tests cover:
 - User isolation (can't access other users' conversations)
 - Error handling
 """
-import pytest
-from django.test import Client
-from django.contrib.auth import get_user_model
-from queries.models import Query, Conversation
 import json
+
+import pytest
+from django.contrib.auth import get_user_model
+from django.test import Client
+
+from queries.models import Conversation, Query
 
 User = get_user_model()
 
@@ -123,8 +125,9 @@ def test_list_conversations_with_data(mock_user):
 @pytest.mark.django_db
 def test_list_conversations_date_grouping(mock_user):
     """Test that conversations are grouped by date"""
-    from django.utils import timezone
     from datetime import timedelta
+
+    from django.utils import timezone
 
     client = Client()
     client.force_login(mock_user)
@@ -443,8 +446,9 @@ def test_conversation_ordering(mock_user):
     client = Client()
     client.force_login(mock_user)
 
-    from django.utils import timezone
     from datetime import timedelta
+
+    from django.utils import timezone
 
     now = timezone.now()
 
@@ -474,8 +478,9 @@ def test_query_ordering_in_conversation(mock_user):
     client = Client()
     client.force_login(mock_user)
 
-    from django.utils import timezone
     from datetime import timedelta
+
+    from django.utils import timezone
 
     now = timezone.now()
 

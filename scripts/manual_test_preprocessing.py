@@ -5,19 +5,23 @@ Tests with the actual legal PDFs we have.
 NOTE: This test requires actual PDF files in legal_documents/ directory.
 Skip in CI/CD environments where files are not available.
 """
-import sys
+
 import os
+import sys
+
 import pytest
 
 # Add project to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Setup Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 import django
+
 django.setup()
 
 from PyPDF2 import PdfReader
+
 from knowledge.services.preprocessor import DocumentPreprocessor
 
 
@@ -50,7 +54,7 @@ def test_preprocessing():
     preprocessor = DocumentPreprocessor()
     result = preprocessor.preprocess(first_page)
 
-    cleaned = result['cleaned']
+    cleaned = result["cleaned"]
 
     # Show cleaned text preview
     print("\n" + "-" * 80)
@@ -78,8 +82,8 @@ def test_preprocessing():
 
     # Check for common encoding issues
     encoding_issues = {
-        '�': first_page.count('�'),
-        '\u0142': first_page.count('\u0142'),
+        "�": first_page.count("�"),
+        "\u0142": first_page.count("\u0142"),
     }
 
     print("\nEncoding issues found in raw text:")

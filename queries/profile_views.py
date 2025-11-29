@@ -1,13 +1,15 @@
 """
 User profile and system prompt management views.
 """
-from django.shortcuts import render
-from django.http import HttpResponse
-from django.views.decorators.http import require_http_methods
-from django.template.loader import render_to_string
-from django.contrib.auth.decorators import login_required
-from django.contrib.admin.views.decorators import staff_member_required
+
 import logging
+
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from django.shortcuts import render
+from django.template.loader import render_to_string
+from django.views.decorators.http import require_http_methods
 
 from .models import SystemPrompt
 
@@ -25,11 +27,14 @@ def get_profile_sidebar(request):
     if not system_prompt:
         system_prompt = SystemPrompt.objects.create(is_active=True)
 
-    html = render_to_string('partials/profile_sidebar.html', {
-        'user': user,
-        'system_prompt': system_prompt,
-        'is_admin': user.is_staff or user.is_superuser,
-    })
+    html = render_to_string(
+        "partials/profile_sidebar.html",
+        {
+            "user": user,
+            "system_prompt": system_prompt,
+            "is_admin": user.is_staff or user.is_superuser,
+        },
+    )
 
     return HttpResponse(html)
 
@@ -38,7 +43,7 @@ def get_profile_sidebar(request):
 @staff_member_required
 def update_system_prompt(request):
     """Update the system prompt (admin only)."""
-    prompt_text = request.POST.get('prompt_text', '').strip()
+    prompt_text = request.POST.get("prompt_text", "").strip()
 
     if not prompt_text:
         return HttpResponse(
@@ -50,9 +55,7 @@ def update_system_prompt(request):
         system_prompt = SystemPrompt.objects.filter(is_active=True).first()
         if not system_prompt:
             system_prompt = SystemPrompt.objects.create(
-                prompt_text=prompt_text,
-                is_active=True,
-                updated_by=request.user
+                prompt_text=prompt_text, is_active=True, updated_by=request.user
             )
         else:
             system_prompt.prompt_text = prompt_text

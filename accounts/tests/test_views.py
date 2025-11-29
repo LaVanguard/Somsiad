@@ -11,14 +11,16 @@ Tests cover:
 - TTFT (Time To First Token) measurement
 - Database query saving
 """
-import pytest
 import json
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
+from django.contrib.auth import get_user_model
 from django.test import Client
 from django.urls import reverse
-from django.contrib.auth import get_user_model
-from unittest.mock import Mock, patch, MagicMock
-from queries.models import Query, Conversation
+
 from knowledge.models import Document
+from queries.models import Conversation, Query
 
 User = get_user_model()
 
@@ -448,8 +450,9 @@ def test_query_api_saves_query_on_exception(mock_user):
 @pytest.mark.django_db
 def test_home_view_conversation_grouping(mock_user):
     """Test that conversations are properly grouped by time"""
-    from django.utils import timezone
     from datetime import timedelta
+
+    from django.utils import timezone
 
     client = Client()
     client.force_login(mock_user)

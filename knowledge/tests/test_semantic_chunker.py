@@ -11,8 +11,8 @@ Tests cover:
 - Edge cases (malformed articles, no structure, preambles)
 """
 import pytest
-from knowledge.services.semantic_chunker import SemanticChunker, LegalChunk
 
+from knowledge.services.semantic_chunker import LegalChunk, SemanticChunker
 
 # ============================================================================
 # Basic Article Chunking Tests

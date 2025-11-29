@@ -3,14 +3,20 @@ RAG Service for document retrieval and LLM generation.
 Sprint 2 implementation.
 Sprint 8: Added RAG 2.0 hybrid search support.
 """
-import time
+
 import logging
-from typing import List, Dict, Tuple, Optional
+import time
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
+
 from django.conf import settings
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain.schema import Document as LangChainDocument
+from langchain.schema import HumanMessage, SystemMessage
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.schema import Document as LangChainDocument, SystemMessage, HumanMessage
-from supabase import create_client, Client
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from supabase import Client, create_client
+
+if TYPE_CHECKING:
+    from knowledge.services.hybrid_search_service import HybridSearchService
 
 logger = logging.getLogger(__name__)
 
@@ -31,13 +37,10 @@ class RAGService:
 
         # Initialize clients
         self.embeddings = OpenAIEmbeddings(
-            openai_api_key=self.openai_api_key,
-            model="text-embedding-3-small"
+            openai_api_key=self.openai_api_key, model="text-embedding-3-small"
         )
         self.llm = ChatOpenAI(
-            openai_api_key=self.openai_api_key,
-            model="gpt-4o-mini",
-            temperature=0.3
+            openai_api_key=self.openai_api_key, model="gpt-4o-mini", temperature=0.3
         )
         self.supabase: Client = create_client(self.supabase_url, self.supabase_key)
 
@@ -50,9 +53,11 @@ class RAGService:
         )
 
         # Sprint 8: Hybrid search service (lazy loaded)
-        self._hybrid_search_service: Optional['HybridSearchService'] = None
+        self._hybrid_search_service: Optional["HybridSearchService"] = None
 
-    def chunk_document(self, text: str, metadata: Dict = None) -> List[LangChainDocument]:
+    def chunk_document(
+        self, text: str, metadata: Dict = None
+    ) -> List[LangChainDocument]:
         """
         Split document into chunks for embedding.
 
@@ -74,19 +79,17 @@ class RAGService:
             List of LangChain Document objects
         """
         import warnings
+
         warnings.warn(
             "RAGService.chunk_document() uses naive chunking. "
             "Use DocumentProcessor with SemanticChunker for production.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
 
         chunks = self.text_splitter.split_text(text)
         documents = [
-            LangChainDocument(
-                page_content=chunk,
-                metadata=metadata or {}
-            )
+            LangChainDocument(page_content=chunk, metadata=metadata or {})
             for chunk in chunks
         ]
         return documents
@@ -105,10 +108,7 @@ class RAGService:
         return embeddings
 
     def store_embeddings(
-        self,
-        embeddings: List[List[float]],
-        texts: List[str],
-        metadata: List[Dict]
+        self, embeddings: List[List[float]], texts: List[str], metadata: List[Dict]
     ) -> List[str]:
         """
         Store embeddings in Supabase pgvector.
@@ -124,11 +124,7 @@ class RAGService:
         """
         # Prepare data for Supabase
         records = [
-            {
-                "embedding": emb,
-                "content": text,
-                "metadata": meta
-            }
+            {"embedding": emb, "content": text, "metadata": meta}
             for emb, text, meta in zip(embeddings, texts, metadata)
         ]
 
@@ -137,18 +133,18 @@ class RAGService:
         all_embedding_ids = []
 
         for i in range(0, len(records), batch_size):
-            batch = records[i:i + batch_size]
+            batch = records[i : i + batch_size]
             response = self.supabase.table("vector_embeddings").insert(batch).execute()
             batch_ids = [record["id"] for record in response.data]
             all_embedding_ids.extend(batch_ids)
-            logger.info(f"Inserted batch {i//batch_size + 1}/{(len(records)-1)//batch_size + 1} ({len(batch)} embeddings)")
+            logger.info(
+                f"Inserted batch {i//batch_size + 1}/{(len(records)-1)//batch_size + 1} ({len(batch)} embeddings)"
+            )
 
         return all_embedding_ids
 
     def search_similar_chunks(
-        self,
-        query: str,
-        top_k: int = 5
+        self, query: str, top_k: int = 5
     ) -> List[Tuple[str, Dict, float]]:
         """
         Search for similar document chunks using vector similarity.
@@ -166,19 +162,12 @@ class RAGService:
         # Search Supabase with RPC function (pgvector similarity)
         response = self.supabase.rpc(
             "match_embeddings",
-            {
-                "query_embedding": query_embedding,
-                "match_count": top_k
-            }
+            {"query_embedding": query_embedding, "match_count": top_k},
         ).execute()
 
         # Parse results
         results = [
-            (
-                record["content"],
-                record["metadata"],
-                record["similarity"]
-            )
+            (record["content"], record["metadata"], record["similarity"])
             for record in response.data
         ]
 
@@ -188,6 +177,7 @@ class RAGService:
         """Get active system prompt from database or return default."""
         try:
             from queries.models import SystemPrompt
+
             system_prompt = SystemPrompt.objects.filter(is_active=True).first()
             if system_prompt:
                 return system_prompt.prompt_text
@@ -215,11 +205,7 @@ Format odpowiedzi:
 - Szczegółowa odpowiedź z odniesieniami do przepisów
 - Praktyczne wskazówki (jeśli masz pewność)"""
 
-    def generate_answer(
-        self,
-        question: str,
-        context_chunks: List[str]
-    ) -> str:
+    def generate_answer(self, question: str, context_chunks: List[str]) -> str:
         """
         Generate answer using LLM with retrieved context.
 
@@ -234,10 +220,9 @@ Format odpowiedzi:
         system_prompt = self._get_system_prompt()
 
         # Build context from chunks
-        context = "\n\n".join([
-            f"[Fragment {i+1}]\n{chunk}"
-            for i, chunk in enumerate(context_chunks)
-        ])
+        context = "\n\n".join(
+            [f"[Fragment {i+1}]\n{chunk}" for i, chunk in enumerate(context_chunks)]
+        )
 
         # Build user message with context and question
         user_message = f"""Kontekst prawny:
@@ -251,7 +236,7 @@ Odpowiedź:"""
         # Create messages with proper system/user roles
         messages = [
             SystemMessage(content=system_prompt),
-            HumanMessage(content=user_message)
+            HumanMessage(content=user_message),
         ]
 
         # Generate answer
@@ -260,11 +245,7 @@ Odpowiedź:"""
 
         return answer
 
-    def generate_answer_streaming(
-        self,
-        question: str,
-        context_chunks: List[str]
-    ):
+    def generate_answer_streaming(self, question: str, context_chunks: List[str]):
         """
         Generate answer using LLM with retrieved context (streaming).
 
@@ -279,10 +260,9 @@ Odpowiedź:"""
         system_prompt = self._get_system_prompt()
 
         # Build context from chunks
-        context = "\n\n".join([
-            f"[Fragment {i+1}]\n{chunk}"
-            for i, chunk in enumerate(context_chunks)
-        ])
+        context = "\n\n".join(
+            [f"[Fragment {i+1}]\n{chunk}" for i, chunk in enumerate(context_chunks)]
+        )
 
         # Build user message with context and question
         user_message = f"""Kontekst prawny:
@@ -296,12 +276,12 @@ Odpowiedź:"""
         # Create messages with proper system/user roles
         messages = [
             SystemMessage(content=system_prompt),
-            HumanMessage(content=user_message)
+            HumanMessage(content=user_message),
         ]
 
         # Stream answer chunks
         for chunk in self.llm.stream(messages):
-            if hasattr(chunk, 'content'):
+            if hasattr(chunk, "content"):
                 yield chunk.content
 
     @property
@@ -309,14 +289,12 @@ Odpowiedź:"""
         """Lazy load HybridSearchService to avoid circular imports."""
         if self._hybrid_search_service is None:
             from knowledge.services.hybrid_search_service import HybridSearchService
+
             self._hybrid_search_service = HybridSearchService(rag_service=self)
         return self._hybrid_search_service
 
     def process_query(
-        self,
-        question: str,
-        top_k: int = 5,
-        use_hybrid_search: bool = True
+        self, question: str, top_k: int = 5, use_hybrid_search: bool = True
     ) -> Tuple[str, List[Dict], float]:
         """
         Full RAG pipeline: retrieve → generate answer.
@@ -335,15 +313,21 @@ Odpowiedź:"""
         if use_hybrid_search:
             # Sprint 8: Hybrid search (BM25 + vector with RRF fusion)
             logger.info(f"Using hybrid search for query: '{question[:50]}...'")
-            hybrid_results = self.hybrid_search_service.hybrid_search(question, top_k=top_k)
+            hybrid_results = self.hybrid_search_service.hybrid_search(
+                question, top_k=top_k
+            )
 
             # Extract context and sources from hybrid results
-            context_chunks = [chunk['content'] for chunk in hybrid_results]
+            context_chunks = [chunk["content"] for chunk in hybrid_results]
             sources = [
                 {
-                    "text": chunk['content'][:200] + "..." if len(chunk['content']) > 200 else chunk['content'],
-                    "metadata": chunk.get('metadata', {}),
-                    "rrf_score": chunk.get('rrf_score', 0.0)
+                    "text": (
+                        chunk["content"][:200] + "..."
+                        if len(chunk["content"]) > 200
+                        else chunk["content"]
+                    ),
+                    "metadata": chunk.get("metadata", {}),
+                    "rrf_score": chunk.get("rrf_score", 0.0),
                 }
                 for chunk in hybrid_results
             ]
@@ -358,7 +342,7 @@ Odpowiedź:"""
                 {
                     "text": text[:200] + "..." if len(text) > 200 else text,
                     "metadata": metadata,
-                    "similarity": similarity
+                    "similarity": similarity,
                 }
                 for text, metadata, similarity in search_results
             ]

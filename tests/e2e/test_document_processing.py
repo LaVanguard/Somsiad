@@ -9,10 +9,12 @@ This test verifies the complete document processing pipeline:
 
 Required for 10xDevs certification.
 """
-import pytest
 import os
-from playwright.sync_api import Page, expect
+
+import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
+from playwright.sync_api import Page, expect
+
 from knowledge.models import Document
 
 

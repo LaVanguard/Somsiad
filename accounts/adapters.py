@@ -1,6 +1,7 @@
 """
 Custom django-allauth adapters for security.
 """
+
 from allauth.account.adapter import DefaultAccountAdapter
 from django.core.exceptions import PermissionDenied
 

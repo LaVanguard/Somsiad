@@ -12,10 +12,11 @@ Tests cover:
 - Processing time tracking
 - Deprecated chunk_document method
 """
-import pytest
-from unittest.mock import Mock, MagicMock, patch
-from knowledge.services.rag_service import RAGService
+from unittest.mock import MagicMock, Mock, patch
 
+import pytest
+
+from knowledge.services.rag_service import RAGService
 
 # ============================================================================
 # Embedding Generation Tests

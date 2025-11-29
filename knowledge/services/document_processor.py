@@ -2,14 +2,17 @@
 Document processing service for PDF extraction and embedding generation.
 Sprint 2 implementation.
 """
+
 import logging
-from typing import List, Dict
-from PyPDF2 import PdfReader
+from typing import Dict, List
+
 from django.core.files.uploadedfile import UploadedFile
+from PyPDF2 import PdfReader
+
 from knowledge.models import Document, Embedding
-from knowledge.services.rag_service import RAGService
 from knowledge.services.preprocessor import DocumentPreprocessor
-from knowledge.services.semantic_chunker import SemanticChunker, LegalChunk
+from knowledge.services.rag_service import RAGService
+from knowledge.services.semantic_chunker import LegalChunk, SemanticChunker
 from knowledge.services.summarizer import DocumentSummarizer
 
 logger = logging.getLogger(__name__)
@@ -29,7 +32,7 @@ class DocumentProcessor:
         self,
         enable_preprocessing: bool = True,
         use_semantic_chunking: bool = True,
-        generate_summaries: bool = True
+        generate_summaries: bool = True,
     ):
         self.rag_service = RAGService()
         self.preprocessor = DocumentPreprocessor()
@@ -87,29 +90,29 @@ class DocumentProcessor:
                 return False
 
             # 2. Combine all pages with page markers
-            full_text = "\n\n".join([
-                f"[Strona {page_num}]\n{text}"
-                for page_num, text in pages.items()
-            ])
+            full_text = "\n\n".join(
+                [f"[Strona {page_num}]\n{text}" for page_num, text in pages.items()]
+            )
 
             # 3. Preprocess text (clean administrative noise)
             if self.enable_preprocessing:
                 logger.info(f"Preprocessing {document.title}...")
                 preprocessed = self.preprocessor.preprocess(full_text)
-                stats = self.preprocessor.get_stats(preprocessed['raw'], preprocessed['cleaned'])
+                stats = self.preprocessor.get_stats(
+                    preprocessed["raw"], preprocessed["cleaned"]
+                )
                 logger.info(
                     f"Preprocessing stats: {stats['chars_removed']} chars removed "
                     f"({stats['reduction_pct']}% reduction)"
                 )
-                full_text = preprocessed['cleaned']
+                full_text = preprocessed["cleaned"]
 
             # 4. Generate document summary (if enabled)
             doc_summary = None
             if self.generate_summaries:
                 logger.info(f"Generating document summary for {document.title}...")
                 doc_summary = self.summarizer.generate_document_summary(
-                    full_text,
-                    document.title
+                    full_text, document.title
                 )
                 logger.info(f"Summary generated: {len(doc_summary['summary'])} chars")
 
@@ -117,12 +120,16 @@ class DocumentProcessor:
             base_metadata = {
                 "document_id": document.id,
                 "document_title": document.title,
-                "category": document.category
+                "category": document.category,
             }
 
             if self.use_semantic_chunking:
-                logger.info("✅ Using SEMANTIC chunking (PRD-compliant, by articles/sections)...")
-                legal_chunks = self.semantic_chunker.chunk_document(full_text, base_metadata)
+                logger.info(
+                    "✅ Using SEMANTIC chunking (PRD-compliant, by articles/sections)..."
+                )
+                legal_chunks = self.semantic_chunker.chunk_document(
+                    full_text, base_metadata
+                )
                 logger.info(f"Created {len(legal_chunks)} semantic chunks")
 
                 # Enrich metadata for each chunk
@@ -135,18 +142,18 @@ class DocumentProcessor:
                 # Convert to format expected by RAG service
                 texts = [chunk.content for chunk in enriched_chunks]
                 chunk_metadata_list = [
-                    {**base_metadata, **chunk.to_dict()}
-                    for chunk in enriched_chunks
+                    {**base_metadata, **chunk.to_dict()} for chunk in enriched_chunks
                 ]
             else:
                 # Fallback: Use original fixed-size chunking
                 logger.warning("⚠️ Using NAIVE fixed-size chunking (not PRD-compliant)")
                 logger.warning("Consider enabling semantic chunking for production use")
-                langchain_chunks = self.rag_service.chunk_document(full_text, base_metadata)
+                langchain_chunks = self.rag_service.chunk_document(
+                    full_text, base_metadata
+                )
                 texts = [chunk.page_content for chunk in langchain_chunks]
                 chunk_metadata_list = [
-                    {**base_metadata, "chunk_index": i}
-                    for i in range(len(texts))
+                    {**base_metadata, "chunk_index": i} for i in range(len(texts))
                 ]
 
             logger.info(f"Created {len(texts)} chunks from {document.title}")
@@ -155,12 +162,10 @@ class DocumentProcessor:
             if doc_summary:
                 logger.info("Adding document summary as searchable chunk...")
                 summary_chunk = self.summarizer.create_searchable_summary_chunk(
-                    document.id,
-                    document.title,
-                    doc_summary
+                    document.id, document.title, doc_summary
                 )
-                texts.insert(0, summary_chunk['content'])
-                chunk_metadata_list.insert(0, summary_chunk['metadata'])
+                texts.insert(0, summary_chunk["content"])
+                chunk_metadata_list.insert(0, summary_chunk["metadata"])
                 logger.info("Document summary chunk added")
 
             # 7. Generate embeddings for all chunks (including summary)
@@ -169,19 +174,19 @@ class DocumentProcessor:
 
             # 8. Store in Supabase
             embedding_ids = self.rag_service.store_embeddings(
-                embeddings,
-                texts,
-                chunk_metadata_list
+                embeddings, texts, chunk_metadata_list
             )
             logger.info(f"Stored {len(embedding_ids)} embeddings in Supabase")
 
             # 9. Store references in Django database
-            for i, (text, emb_id, metadata) in enumerate(zip(texts, embedding_ids, chunk_metadata_list)):
+            for i, (text, emb_id, metadata) in enumerate(
+                zip(texts, embedding_ids, chunk_metadata_list)
+            ):
                 Embedding.objects.create(
                     document=document,
                     chunk_text=text[:5000],  # Truncate if needed
                     embedding_id=str(emb_id),
-                    metadata=metadata
+                    metadata=metadata,
                 )
 
             # 10. Mark document as processed
@@ -192,9 +197,12 @@ class DocumentProcessor:
             logger.info("Rebuilding BM25 index...")
             try:
                 from knowledge.services.bm25_service import BM25Service
+
                 bm25 = BM25Service()
                 stats = bm25.rebuild_index()
-                logger.info(f"BM25 index rebuilt: {stats['total_chunks']} chunks indexed")
+                logger.info(
+                    f"BM25 index rebuilt: {stats['total_chunks']} chunks indexed"
+                )
             except Exception as e:
                 logger.warning(f"Failed to rebuild BM25 index: {e}")
 
@@ -223,7 +231,8 @@ class DocumentProcessor:
             String like "1-3" or "5"
         """
         import re
-        page_markers = re.findall(r'\[Strona (\d+)\]', text)
+
+        page_markers = re.findall(r"\[Strona (\d+)\]", text)
 
         if not page_markers:
             return "unknown"
@@ -274,17 +283,16 @@ class DocumentProcessor:
             logger.info("Rebuilding BM25 index after batch processing...")
             try:
                 from knowledge.services.bm25_service import BM25Service
+
                 bm25 = BM25Service()
                 stats = bm25.rebuild_index()
-                logger.info(f"BM25 index rebuilt: {stats['total_chunks']} chunks indexed")
+                logger.info(
+                    f"BM25 index rebuilt: {stats['total_chunks']} chunks indexed"
+                )
             except Exception as e:
                 logger.warning(f"Failed to rebuild BM25 index: {e}")
 
-        return {
-            "total": total,
-            "success": success_count,
-            "failed": failed_count
-        }
+        return {"total": total, "success": success_count, "failed": failed_count}
 
     def reprocess_document(self, document: Document) -> bool:
         """
@@ -307,7 +315,9 @@ class DocumentProcessor:
             # 2. Delete old embeddings from Supabase vector_embeddings table
             if embedding_ids:
                 for emb_id in embedding_ids:
-                    self.rag_service.supabase.table("vector_embeddings").delete().eq("id", emb_id).execute()
+                    self.rag_service.supabase.table("vector_embeddings").delete().eq(
+                        "id", emb_id
+                    ).execute()
                 logger.info(f"Deleted {len(embedding_ids)} old embeddings")
 
             # 3. Mark as unprocessed and reprocess

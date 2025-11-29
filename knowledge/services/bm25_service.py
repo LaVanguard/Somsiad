@@ -2,15 +2,17 @@
 BM25 Service for keyword search in RAG system.
 Sprint 8 - RAG 2.0 implementation.
 """
+
 import logging
 import pickle
 import re
 from pathlib import Path
-from typing import List, Tuple, Optional
-from django.conf import settings
-from supabase import create_client, Client
-from rank_bm25 import BM25Okapi
+from typing import List, Optional, Tuple
+
 import numpy as np
+from django.conf import settings
+from rank_bm25 import BM25Okapi
+from supabase import Client, create_client
 
 logger = logging.getLogger(__name__)
 
@@ -25,10 +27,45 @@ class BM25Service:
 
     # Polish stopwords for better keyword matching
     POLISH_STOPWORDS = {
-        'i', 'w', 'z', 'na', 'do', 'o', 'a', 'po', 'to', 'od', 'za', 'dla',
-        'przez', 'pod', 'przy', 'co', 'oraz', 'jako', 'jak', 'je', 'lub',
-        'jest', 'są', 'były', 'była', 'był', 'być', 'te', 'ta', 'ten', 'tym',
-        'czy', 'nie', 'się', 'tylko', 'może', 'można', 'także', 'również'
+        "i",
+        "w",
+        "z",
+        "na",
+        "do",
+        "o",
+        "a",
+        "po",
+        "to",
+        "od",
+        "za",
+        "dla",
+        "przez",
+        "pod",
+        "przy",
+        "co",
+        "oraz",
+        "jako",
+        "jak",
+        "je",
+        "lub",
+        "jest",
+        "są",
+        "były",
+        "była",
+        "był",
+        "być",
+        "te",
+        "ta",
+        "ten",
+        "tym",
+        "czy",
+        "nie",
+        "się",
+        "tylko",
+        "może",
+        "można",
+        "także",
+        "również",
     }
 
     def __init__(self, index_path: str = None):
@@ -47,7 +84,7 @@ class BM25Service:
         if index_path is None:
             media_dir = Path(settings.MEDIA_ROOT)
             media_dir.mkdir(exist_ok=True)
-            index_path = str(media_dir / 'bm25_index.pkl')
+            index_path = str(media_dir / "bm25_index.pkl")
 
         self.index_path = index_path
         self.index: Optional[BM25Okapi] = None
@@ -71,11 +108,12 @@ class BM25Service:
         text = text.lower()
 
         # Split on whitespace and punctuation (keep alphanumeric + Polish chars)
-        tokens = re.findall(r'[a-ząćęłńóśźż0-9]+', text)
+        tokens = re.findall(r"[a-ząćęłńóśźż0-9]+", text)
 
         # Remove stopwords and very short tokens
         tokens = [
-            token for token in tokens
+            token
+            for token in tokens
             if token not in self.POLISH_STOPWORDS and len(token) > 2
         ]
 
@@ -91,15 +129,14 @@ class BM25Service:
         logger.info("Building BM25 index from Supabase...")
 
         # Fetch all chunks from Supabase
-        response = self.supabase.table("vector_embeddings").select("id, content").execute()
+        response = (
+            self.supabase.table("vector_embeddings").select("id, content").execute()
+        )
         chunks = response.data
 
         if not chunks:
             logger.warning("No chunks found in Supabase. BM25 index not built.")
-            return {
-                'total_chunks': 0,
-                'avg_tokens_per_chunk': 0
-            }
+            return {"total_chunks": 0, "avg_tokens_per_chunk": 0}
 
         logger.info(f"Fetched {len(chunks)} chunks from Supabase")
 
@@ -108,8 +145,8 @@ class BM25Service:
         self.corpus_tokenized = []
 
         for chunk in chunks:
-            chunk_id = str(chunk['id'])
-            content = chunk['content']
+            chunk_id = str(chunk["id"])
+            content = chunk["content"]
 
             tokens = self._tokenize(content)
 
@@ -121,12 +158,14 @@ class BM25Service:
 
         # Calculate statistics
         total_tokens = sum(len(tokens) for tokens in self.corpus_tokenized)
-        avg_tokens = total_tokens / len(self.corpus_tokenized) if self.corpus_tokenized else 0
+        avg_tokens = (
+            total_tokens / len(self.corpus_tokenized) if self.corpus_tokenized else 0
+        )
 
         stats = {
-            'total_chunks': len(self.chunk_ids),
-            'avg_tokens_per_chunk': round(avg_tokens, 2),
-            'total_tokens': total_tokens
+            "total_chunks": len(self.chunk_ids),
+            "avg_tokens_per_chunk": round(avg_tokens, 2),
+            "total_tokens": total_tokens,
         }
 
         logger.info(f"BM25 index built: {stats}")
@@ -146,12 +185,12 @@ class BM25Service:
 
         try:
             index_data = {
-                'index': self.index,
-                'chunk_ids': self.chunk_ids,
-                'corpus_tokenized': self.corpus_tokenized
+                "index": self.index,
+                "chunk_ids": self.chunk_ids,
+                "corpus_tokenized": self.corpus_tokenized,
             }
 
-            with open(self.index_path, 'wb') as f:
+            with open(self.index_path, "wb") as f:
                 pickle.dump(index_data, f)
 
             logger.info(f"BM25 index saved to {self.index_path}")
@@ -173,14 +212,16 @@ class BM25Service:
                 logger.info("No existing BM25 index found. Will build on first search.")
                 return False
 
-            with open(self.index_path, 'rb') as f:
+            with open(self.index_path, "rb") as f:
                 index_data = pickle.load(f)
 
-            self.index = index_data['index']
-            self.chunk_ids = index_data['chunk_ids']
-            self.corpus_tokenized = index_data['corpus_tokenized']
+            self.index = index_data["index"]
+            self.chunk_ids = index_data["chunk_ids"]
+            self.corpus_tokenized = index_data["corpus_tokenized"]
 
-            logger.info(f"BM25 index loaded from {self.index_path} ({len(self.chunk_ids)} chunks)")
+            logger.info(
+                f"BM25 index loaded from {self.index_path} ({len(self.chunk_ids)} chunks)"
+            )
             return True
 
         except Exception as e:

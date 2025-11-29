@@ -7,11 +7,13 @@ This file provides fixtures and configuration for end-to-end testing:
 - Test user creation
 - Database cleanup
 """
-import pytest
+
 import os
+
+import pytest
 from django.contrib.auth import get_user_model
 from django.test import LiveServerTestCase
-from playwright.sync_api import Browser, Page, BrowserContext
+from playwright.sync_api import Browser, BrowserContext, Page
 
 # Set environment variable to allow Django sync operations in async context
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
@@ -30,12 +32,10 @@ def test_user(db, django_db_blocker):
     """Create a test user for E2E tests"""
     with django_db_blocker.unblock():
         # Clean up any existing user with same username
-        User.objects.filter(username='e2e_testuser').delete()
+        User.objects.filter(username="e2e_testuser").delete()
 
         user = User.objects.create_user(
-            username='e2e_testuser',
-            email='e2e@test.com',
-            password='testpass123'
+            username="e2e_testuser", email="e2e@test.com", password="testpass123"
         )
         yield user
 
@@ -54,8 +54,8 @@ def authenticated_page(page: Page, test_user, live_server):
     page.goto(f"{str(live_server)}/accounts/login/")
 
     # Fill in login form (django-allauth uses email in login field)
-    page.fill('input[name="login"]', 'e2e@test.com')
-    page.fill('input[name="password"]', 'testpass123')
+    page.fill('input[name="login"]', "e2e@test.com")
+    page.fill('input[name="password"]', "testpass123")
 
     # Submit form
     page.click('button[type="submit"]')

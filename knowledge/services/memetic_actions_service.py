@@ -3,8 +3,10 @@ Memetic Actions Service
 Generates fake legal actions (Prosecutor, Donos, Municipal Guard) using GPT-5 mini.
 Sprint 9 - Entertainment feature with educational value.
 """
+
 import logging
 from typing import Dict, List
+
 from django.conf import settings
 from langchain_openai import ChatOpenAI
 
@@ -24,13 +26,11 @@ class MemeticActionsService:
         self.llm = ChatOpenAI(
             openai_api_key=settings.OPENAI_API_KEY,
             model="gpt-4o-mini",
-            temperature=0.2  # Low for formal, consistent tone
+            temperature=0.2,  # Low for formal, consistent tone
         )
 
     def generate_prosecutor_letter(
-        self,
-        question: str,
-        ai_answer: str
+        self, question: str, ai_answer: str
     ) -> Dict[str, str]:
         """
         Generate formal letter to prosecutor office (zawiadomienie o przestępstwie).
@@ -81,24 +81,17 @@ Wygeneruj TYLKO tekst pisma, bez dodatkowych komentarzy."""
 
             logger.info(f"Generated prosecutor letter ({len(letter)} chars)")
 
-            return {
-                'letter': letter,
-                'generated_by': 'gpt-5-mini'
-            }
+            return {"letter": letter, "generated_by": "gpt-5-mini"}
 
         except Exception as e:
             logger.error(f"Failed to generate prosecutor letter: {e}")
             # Fallback to template
             return {
-                'letter': self._get_fallback_prosecutor_letter(question),
-                'generated_by': 'template'
+                "letter": self._get_fallback_prosecutor_letter(question),
+                "generated_by": "template",
             }
 
-    def generate_donos_email(
-        self,
-        question: str,
-        ai_answer: str
-    ) -> Dict[str, str]:
+    def generate_donos_email(self, question: str, ai_answer: str) -> Dict[str, str]:
         """
         Generate anonymous complaint email to municipal office (donos).
 
@@ -162,24 +155,18 @@ Wygeneruj TYLKO temat i treść emaila (osobno), bez dodatkowych komentarzy."""
 
             logger.info(f"Generated donos email (subject: {subject[:50]}...)")
 
-            return {
-                'subject': subject,
-                'body': body,
-                'generated_by': 'gpt-5-mini'
-            }
+            return {"subject": subject, "body": body, "generated_by": "gpt-5-mini"}
 
         except Exception as e:
             logger.error(f"Failed to generate donos email: {e}")
             return {
-                'subject': "Zgłoszenie nieprawidłowości",
-                'body': self._get_fallback_donos_email(question),
-                'generated_by': 'template'
+                "subject": "Zgłoszenie nieprawidłowości",
+                "body": self._get_fallback_donos_email(question),
+                "generated_by": "template",
             }
 
     def generate_straz_call_script(
-        self,
-        question: str,
-        ai_answer: str
+        self, question: str, ai_answer: str
     ) -> Dict[str, any]:
         """
         Generate fake phone call script for Municipal Guard (Straż Miejska).
@@ -238,34 +225,38 @@ Bez dodatkowych komentarzy."""
             for line in content.split("\n"):
                 line = line.strip()
                 if line.startswith("OPERATOR:"):
-                    messages.append({
-                        'id': msg_id,
-                        'sender': 'operator',
-                        'text': line.replace("OPERATOR:", "").strip()
-                    })
+                    messages.append(
+                        {
+                            "id": msg_id,
+                            "sender": "operator",
+                            "text": line.replace("OPERATOR:", "").strip(),
+                        }
+                    )
                     msg_id += 1
                 elif line.startswith("USER:"):
-                    messages.append({
-                        'id': msg_id,
-                        'sender': 'user',
-                        'text': line.replace("USER:", "").strip()
-                    })
+                    messages.append(
+                        {
+                            "id": msg_id,
+                            "sender": "user",
+                            "text": line.replace("USER:", "").strip(),
+                        }
+                    )
                     msg_id += 1
 
             logger.info(f"Generated Straż call script ({len(messages)} messages)")
 
             return {
-                'messages': messages,
-                'patrol_time': '10-15 minut',
-                'generated_by': 'gpt-5-mini'
+                "messages": messages,
+                "patrol_time": "10-15 minut",
+                "generated_by": "gpt-5-mini",
             }
 
         except Exception as e:
             logger.error(f"Failed to generate Straż call script: {e}")
             return {
-                'messages': self._get_fallback_straz_script(question),
-                'patrol_time': '15 minut',
-                'generated_by': 'template'
+                "messages": self._get_fallback_straz_script(question),
+                "patrol_time": "15 minut",
+                "generated_by": "template",
             }
 
     # Fallback templates (in case GPT fails)
@@ -313,23 +304,49 @@ Email wysłany z adresu anonimowego"""
     def _get_fallback_straz_script(self, question: str) -> List[Dict]:
         """Fallback template for Straż call."""
         return [
-            {'id': 1, 'sender': 'operator', 'text': 'Straż Miejska, dyżurny Kowalski, słucham. W czym mogę pomóc?'},
-            {'id': 2, 'sender': 'user', 'text': f'Dzień dobry, zgłaszam problem: {question[:100]}'},
-            {'id': 3, 'sender': 'operator', 'text': 'Rozumiem. Wysyłam patrol do sprawdzenia sytuacji.'},
-            {'id': 4, 'sender': 'operator', 'text': 'Patrol będzie na miejscu za około 15 minut.'},
-            {'id': 5, 'sender': 'user', 'text': 'Dziękuję za pomoc.'},
-            {'id': 6, 'sender': 'operator', 'text': 'Do widzenia.'}
+            {
+                "id": 1,
+                "sender": "operator",
+                "text": "Straż Miejska, dyżurny Kowalski, słucham. W czym mogę pomóc?",
+            },
+            {
+                "id": 2,
+                "sender": "user",
+                "text": f"Dzień dobry, zgłaszam problem: {question[:100]}",
+            },
+            {
+                "id": 3,
+                "sender": "operator",
+                "text": "Rozumiem. Wysyłam patrol do sprawdzenia sytuacji.",
+            },
+            {
+                "id": 4,
+                "sender": "operator",
+                "text": "Patrol będzie na miejscu za około 15 minut.",
+            },
+            {"id": 5, "sender": "user", "text": "Dziękuję za pomoc."},
+            {"id": 6, "sender": "operator", "text": "Do widzenia."},
         ]
 
     def _get_current_date(self) -> str:
         """Get current date in Polish format."""
         from datetime import datetime
+
         from django.utils import timezone
 
         months_pl = {
-            1: 'stycznia', 2: 'lutego', 3: 'marca', 4: 'kwietnia',
-            5: 'maja', 6: 'czerwca', 7: 'lipca', 8: 'sierpnia',
-            9: 'września', 10: 'października', 11: 'listopada', 12: 'grudnia'
+            1: "stycznia",
+            2: "lutego",
+            3: "marca",
+            4: "kwietnia",
+            5: "maja",
+            6: "czerwca",
+            7: "lipca",
+            8: "sierpnia",
+            9: "września",
+            10: "października",
+            11: "listopada",
+            12: "grudnia",
         }
 
         now = timezone.now()

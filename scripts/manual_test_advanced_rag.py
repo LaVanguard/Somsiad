@@ -5,19 +5,23 @@ Tests semantic chunking, summarization, and metadata enrichment.
 NOTE: This test requires actual PDF files in legal_documents/ directory.
 Skip in CI/CD environments where files are not available.
 """
-import sys
+
 import os
+import sys
+
 import pytest
 
 # Add project to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Setup Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 import django
+
 django.setup()
 
 from PyPDF2 import PdfReader
+
 from knowledge.services.preprocessor import DocumentPreprocessor
 from knowledge.services.semantic_chunker import SemanticChunker
 from knowledge.services.summarizer import DocumentSummarizer
@@ -42,15 +46,16 @@ def test_advanced_rag():
 
     reader = PdfReader(pdf_path)
     pages = {}
-    for page_num, page in enumerate(reader.pages[:5], start=1):  # First 5 pages only for testing
+    for page_num, page in enumerate(
+        reader.pages[:5], start=1
+    ):  # First 5 pages only for testing
         text = page.extract_text()
         if text.strip():
             pages[page_num] = text.strip()
 
-    full_text = "\n\n".join([
-        f"[Strona {page_num}]\n{text}"
-        for page_num, text in pages.items()
-    ])
+    full_text = "\n\n".join(
+        [f"[Strona {page_num}]\n{text}" for page_num, text in pages.items()]
+    )
 
     print(f"Extracted {len(pages)} pages")
     print(f"Total characters: {len(full_text):,}")
@@ -62,7 +67,7 @@ def test_advanced_rag():
 
     preprocessor = DocumentPreprocessor()
     preprocessed = preprocessor.preprocess(full_text)
-    cleaned_text = preprocessed['cleaned']
+    cleaned_text = preprocessed["cleaned"]
 
     stats = preprocessor.get_stats(full_text, cleaned_text)
     print(f"Characters before:  {stats['chars_before']:,}")
@@ -78,7 +83,7 @@ def test_advanced_rag():
     metadata = {
         "document_id": 1,
         "document_title": "Warunki techniczne metra 2023",
-        "category": "budowa"
+        "category": "budowa",
     }
 
     legal_chunks = chunker.chunk_document(cleaned_text, metadata)
@@ -109,22 +114,21 @@ def test_advanced_rag():
 
     summarizer = DocumentSummarizer()
     doc_summary = summarizer.generate_document_summary(
-        cleaned_text,
-        "Warunki techniczne metra 2023"
+        cleaned_text, "Warunki techniczne metra 2023"
     )
 
     print("\nDOCUMENT SUMMARY:")
     print("-" * 40)
-    print(doc_summary['summary'])
+    print(doc_summary["summary"])
 
     print("\nKEY TOPICS:")
     print("-" * 40)
-    for topic in doc_summary['key_topics']:
+    for topic in doc_summary["key_topics"]:
         print(f"  - {topic}")
 
     print("\nSCOPE:")
     print("-" * 40)
-    print(doc_summary['scope'])
+    print(doc_summary["scope"])
 
     # 5. Chunk Statistics
     print("\n" + "=" * 80)
@@ -158,10 +162,10 @@ def test_advanced_rag():
 
     for chunk in legal_chunks:
         enriched = chunker.extract_metadata(chunk)
-        total_article_refs += len(enriched.get('article_references', []))
-        total_para_refs += len(enriched.get('paragraph_references', []))
-        total_measurements += len(enriched.get('measurements', []))
-        if enriched.get('contains_obligations', False):
+        total_article_refs += len(enriched.get("article_references", []))
+        total_para_refs += len(enriched.get("paragraph_references", []))
+        total_measurements += len(enriched.get("measurements", []))
+        if enriched.get("contains_obligations", False):
             chunks_with_obligations += 1
 
     print(f"Total article references extracted: {total_article_refs}")
@@ -175,15 +179,13 @@ def test_advanced_rag():
     print("=" * 80)
 
     summary_chunk = summarizer.create_searchable_summary_chunk(
-        1,
-        "Warunki techniczne metra 2023",
-        doc_summary
+        1, "Warunki techniczne metra 2023", doc_summary
     )
 
     print(f"Summary chunk length: {len(summary_chunk['content'])} chars")
     print(f"Is summary: {summary_chunk['metadata']['is_summary']}")
     print(f"\nPreview:")
-    print(summary_chunk['content'][:500])
+    print(summary_chunk["content"][:500])
 
     print("\n" + "=" * 80)
     print("TEST COMPLETE!")

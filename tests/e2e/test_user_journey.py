@@ -11,8 +11,8 @@ This test verifies the complete user flow:
 Required for 10xDevs certification.
 """
 import pytest
-from playwright.sync_api import Page, expect
 from django.contrib.auth import get_user_model
+from playwright.sync_api import Page, expect
 
 User = get_user_model()
 

@@ -16,29 +16,27 @@ DEBUG = False
 
 # Allowed hosts - should be set via environment variable
 # Example: ALLOWED_HOSTS="somsiad.railway.app,somsiad.com,www.somsiad.com"
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split(',')
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="").split(",")
 
 # Database - Use DATABASE_URL environment variable (Railway/Heroku style)
 # Fallback to Supabase PostgreSQL if DATABASE_URL not set
 DATABASE_URL = config(
-    'DATABASE_URL',
-    default=f"postgresql://postgres:{config('SUPABASE_DB_PASSWORD', default='')}@{config('SUPABASE_DB_HOST', default='localhost')}:5432/postgres"
+    "DATABASE_URL",
+    default=f"postgresql://postgres:{config('SUPABASE_DB_PASSWORD', default='')}@{config('SUPABASE_DB_HOST', default='localhost')}:5432/postgres",
 )
 
 if dj_database_url:
-    DATABASES = {
-        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600)
-    }
+    DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)}
 else:
     # Fallback if dj_database_url not installed
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'postgres',
-            'USER': 'postgres',
-            'PASSWORD': config('SUPABASE_DB_PASSWORD', default=''),
-            'HOST': config('SUPABASE_DB_HOST', default='localhost'),
-            'PORT': '5432',
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": "postgres",
+            "USER": "postgres",
+            "PASSWORD": config("SUPABASE_DB_PASSWORD", default=""),
+            "HOST": config("SUPABASE_DB_HOST", default="localhost"),
+            "PORT": "5432",
         }
     }
 
@@ -47,7 +45,10 @@ else:
 
 # HTTPS/SSL
 SECURE_SSL_REDIRECT = True  # Redirect all HTTP to HTTPS
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # Railway/Heroku use proxy
+SECURE_PROXY_SSL_HEADER = (
+    "HTTP_X_FORWARDED_PROTO",
+    "https",
+)  # Railway/Heroku use proxy
 
 # HSTS (HTTP Strict Transport Security)
 SECURE_HSTS_SECONDS = 31536000  # 1 year
@@ -59,52 +60,52 @@ SESSION_COOKIE_SECURE = True  # Send session cookie only over HTTPS
 CSRF_COOKIE_SECURE = True  # Send CSRF cookie only over HTTPS
 SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookie
 CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read CSRF cookie (for HTMX)
-CSRF_COOKIE_SAMESITE = 'Lax'  # CSRF protection
+CSRF_COOKIE_SAMESITE = "Lax"  # CSRF protection
 
 # Content Security
 SECURE_CONTENT_TYPE_NOSNIFF = True  # Prevent MIME type sniffing
-X_FRAME_OPTIONS = 'DENY'  # Prevent clickjacking
+X_FRAME_OPTIONS = "DENY"  # Prevent clickjacking
 
 # Logging Configuration
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {message}',
-            'style': '{',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {message}",
+            "style": "{",
         },
     },
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
         },
-        'file': {
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs' / 'django.log',
-            'formatter': 'verbose',
+        "file": {
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "logs" / "django.log",
+            "formatter": "verbose",
         },
     },
-    'root': {
-        'handlers': ['console', 'file'],
-        'level': 'INFO',
+    "root": {
+        "handlers": ["console", "file"],
+        "level": "INFO",
     },
-    'loggers': {
-        'django': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': False,
+    "loggers": {
+        "django": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
         },
-        'knowledge': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': False,
+        "knowledge": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
         },
-        'queries': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': False,
+        "queries": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
         },
     },
 }
@@ -112,9 +113,9 @@ LOGGING = {
 # Email Configuration (optional - for production error emails)
 # Configure if you want Django to email admins about errors
 ADMINS = [
-    ('Admin', config('ADMIN_EMAIL', default='admin@example.com')),
+    ("Admin", config("ADMIN_EMAIL", default="admin@example.com")),
 ]
-SERVER_EMAIL = config('SERVER_EMAIL', default='noreply@somsiad.pl')
+SERVER_EMAIL = config("SERVER_EMAIL", default="noreply@somsiad.pl")
 
 # Production email backend (configure if needed)
 # EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -127,26 +128,26 @@ SERVER_EMAIL = config('SERVER_EMAIL', default='noreply@somsiad.pl')
 # Cache Configuration - Production
 # Use Redis for rate limiting (Railway provides REDIS_URL)
 # Fallback to database cache if Redis not available
-REDIS_URL = config('REDIS_URL', default=None)
+REDIS_URL = config("REDIS_URL", default=None)
 
 if REDIS_URL:
     # Railway Redis (recommended for production)
     CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-            'LOCATION': REDIS_URL,
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": REDIS_URL,
         }
     }
 else:
     # Fallback: Database cache (works but slower)
     # Run: python manage.py createcachetable
     CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-            'LOCATION': 'django_cache_table',
+        "default": {
+            "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+            "LOCATION": "django_cache_table",
         }
     }
 
 # Rate limiting enabled in production
 RATELIMIT_ENABLE = True
-RATELIMIT_USE_CACHE = 'default'
+RATELIMIT_USE_CACHE = "default"

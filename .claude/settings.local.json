@@ -61,7 +61,8 @@
       "Bash(venv/Scripts/pytest.exe --co -q --tb=no)",
       "Bash(venv/Scripts/pytest.exe tests/test_memetic_actions.py -v)",
       "Bash(venv/Scripts/pytest.exe tests/test_memetic_actions.py::TestMemeticActionsViews -v)",
-      "Bash(venv/Scripts/pytest.exe:*)"
+      "Bash(venv/Scripts/pytest.exe:*)",
+      "Bash(git config:*)"
     ],
     "deny": [],
     "ask": []

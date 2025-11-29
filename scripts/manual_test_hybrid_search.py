@@ -2,17 +2,20 @@
 Test script for Sprint 8 Hybrid Search functionality.
 Run with: python test_hybrid_search.py
 """
+
 import os
 import sys
+
 import django
 
 # Fix encoding for Windows console
-if sys.platform.startswith('win'):
+if sys.platform.startswith("win"):
     import io
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 # Setup Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.development')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.development")
 django.setup()
 
 from knowledge.services.bm25_service import BM25Service
@@ -22,9 +25,9 @@ from knowledge.services.rag_service import RAGService
 
 def test_bm25_service():
     """Test BM25 keyword search."""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST 1: BM25 Keyword Search")
-    print("="*80)
+    print("=" * 80)
 
     bm25 = BM25Service()
 
@@ -45,7 +48,7 @@ def test_bm25_service():
         "Art. 5",
         "ogrodzenie",
         "maksymalna wysokość",
-        "przeglądy techniczne"
+        "przeglądy techniczne",
     ]
 
     for query in test_queries:
@@ -58,16 +61,16 @@ def test_bm25_service():
 
 def test_hybrid_search():
     """Test hybrid search (BM25 + vector)."""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST 2: Hybrid Search (BM25 + Vector + RRF)")
-    print("="*80)
+    print("=" * 80)
 
     hybrid = HybridSearchService()
 
     test_queries = [
         "Jak wysoko mogę zbudować ogrodzenie?",
         "Art. 5 wysokość płotu",
-        "Jakie przeglądy są obowiązkowe?"
+        "Jakie przeglądy są obowiązkowe?",
     ]
 
     for query in test_queries:
@@ -76,20 +79,20 @@ def test_hybrid_search():
             results = hybrid.hybrid_search(query, top_k=5)
             print(f"   ✅ Results: {len(results)} chunks")
             for i, chunk in enumerate(results[:3], 1):
-                chunk_id = str(chunk['id'])[:8]
-                rrf_score = chunk.get('rrf_score', 0)
-                content_preview = chunk['content'][:80].replace('\n', ' ')
+                chunk_id = str(chunk["id"])[:8]
+                rrf_score = chunk.get("rrf_score", 0)
+                content_preview = chunk["content"][:80].replace("\n", " ")
                 print(f"   {i}. {chunk_id}... (RRF: {rrf_score:.4f})")
-                print(f"      \"{content_preview}...\"")
+                print(f'      "{content_preview}..."')
         except Exception as e:
             print(f"   ❌ Error: {e}")
 
 
 def test_rag_with_hybrid_search():
     """Test full RAG pipeline with hybrid search."""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST 3: RAG Pipeline with Hybrid Search")
-    print("="*80)
+    print("=" * 80)
 
     rag = RAGService()
 
@@ -100,9 +103,7 @@ def test_rag_with_hybrid_search():
 
     try:
         answer, sources, time_taken = rag.process_query(
-            test_query,
-            top_k=5,
-            use_hybrid_search=True
+            test_query, top_k=5, use_hybrid_search=True
         )
 
         print(f"✅ Answer generated in {time_taken:.2f}s")
@@ -111,32 +112,31 @@ def test_rag_with_hybrid_search():
 
         print(f"\n📚 Sources ({len(sources)}):")
         for i, source in enumerate(sources[:3], 1):
-            rrf_score = source.get('rrf_score', 0)
-            text_preview = source['text'][:80].replace('\n', ' ')
+            rrf_score = source.get("rrf_score", 0)
+            text_preview = source["text"][:80].replace("\n", " ")
             print(f"   {i}. RRF: {rrf_score:.4f}")
-            print(f"      \"{text_preview}...\"")
+            print(f'      "{text_preview}..."')
 
     except Exception as e:
         print(f"❌ Error: {e}")
         import traceback
+
         traceback.print_exc()
 
     # Compare with vector-only search
     print("\n📊 Testing with vector-only search (baseline)...")
     try:
         answer2, sources2, time_taken2 = rag.process_query(
-            test_query,
-            top_k=5,
-            use_hybrid_search=False
+            test_query, top_k=5, use_hybrid_search=False
         )
 
         print(f"✅ Answer generated in {time_taken2:.2f}s")
         print(f"\n📚 Sources ({len(sources2)}):")
         for i, source in enumerate(sources2[:3], 1):
-            similarity = source.get('similarity', 0)
-            text_preview = source['text'][:80].replace('\n', ' ')
+            similarity = source.get("similarity", 0)
+            text_preview = source["text"][:80].replace("\n", " ")
             print(f"   {i}. Similarity: {similarity:.4f}")
-            print(f"      \"{text_preview}...\"")
+            print(f'      "{text_preview}..."')
 
     except Exception as e:
         print(f"❌ Error: {e}")
@@ -144,9 +144,9 @@ def test_rag_with_hybrid_search():
 
 def main():
     """Run all tests."""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("🚀 Sprint 8: Hybrid Search Testing")
-    print("="*80)
+    print("=" * 80)
 
     try:
         # Test 1: BM25 Service
@@ -158,13 +158,14 @@ def main():
         # Test 3: RAG with Hybrid Search
         test_rag_with_hybrid_search()
 
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("✅ All tests completed!")
-        print("="*80 + "\n")
+        print("=" * 80 + "\n")
 
     except Exception as e:
         print(f"\n❌ Test suite failed: {e}")
         import traceback
+
         traceback.print_exc()
 
 

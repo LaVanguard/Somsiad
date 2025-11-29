@@ -2,17 +2,22 @@
 Document management views for HTMX sidebar operations.
 Handles upload, processing, and status updates.
 """
-from django.shortcuts import get_object_or_404
-from django.http import HttpResponse
-from django.views.decorators.http import require_http_methods
-from django.template.loader import render_to_string
-from django.contrib.auth.decorators import login_required
+
 import logging
 
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
+from django.template.loader import render_to_string
+from django.views.decorators.http import require_http_methods
+
+from accounts.decorators import ajax_login_required
+from accounts.ratelimit_decorators import (
+    ratelimit_document_process,
+    ratelimit_document_upload,
+)
 from knowledge.models import Document
 from knowledge.services.document_processor import DocumentProcessor
-from accounts.decorators import ajax_login_required
-from accounts.ratelimit_decorators import ratelimit_document_upload, ratelimit_document_process
 
 logger = logging.getLogger(__name__)
 
@@ -22,37 +27,32 @@ logger = logging.getLogger(__name__)
 @ratelimit_document_upload
 def upload_document(request):
     """Upload a new document via HTMX."""
-    file = request.FILES.get('file')
+    file = request.FILES.get("file")
 
     # Validation
     if not file:
-        return HttpResponse(
-            '<div class="text-red-400">❌ Wybierz plik PDF</div>'
-        )
+        return HttpResponse('<div class="text-red-400">❌ Wybierz plik PDF</div>')
 
-    if not file.name.endswith('.pdf'):
+    if not file.name.endswith(".pdf"):
         return HttpResponse(
             '<div class="text-red-400">❌ Tylko pliki PDF są dozwolone</div>'
         )
 
     try:
         # Auto-generate title from filename (remove .pdf extension and clean up)
-        title = file.name.rsplit('.', 1)[0]  # Remove .pdf extension
-        category = 'document'  # Default category (not used in RAG)
+        title = file.name.rsplit(".", 1)[0]  # Remove .pdf extension
+        category = "document"  # Default category (not used in RAG)
 
         # Create document
         document = Document.objects.create(
-            title=title,
-            category=category,
-            file=file,
-            processed=False
+            title=title, category=category, file=file, processed=False
         )
 
         logger.info(f"Document uploaded: {document.title} (ID: {document.id})")
 
         # Return success message
         return HttpResponse(
-            f'''<div class="text-green-400">
+            f"""<div class="text-green-400">
                 ✅ Dokument "{title}" został dodany!<br>
                 <span class="text-xs">Kliknij "Przetwórz" aby go przetworzyć</span>
             </div>
@@ -61,14 +61,12 @@ def upload_document(request):
                 setTimeout(() => {{
                     htmx.ajax('GET', '/api/documents/list/?status=unprocessed', {{target: '#unprocessed-list'}});
                 }}, 2000);
-            </script>'''
+            </script>"""
         )
 
     except Exception as e:
         logger.error(f"Document upload failed: {e}", exc_info=True)
-        return HttpResponse(
-            f'<div class="text-red-400">❌ Błąd: {str(e)}</div>'
-        )
+        return HttpResponse(f'<div class="text-red-400">❌ Błąd: {str(e)}</div>')
 
 
 @require_http_methods(["POST"])
@@ -83,6 +81,7 @@ def process_document(request, document_id):
 
         # Send immediate feedback
         import time
+
         start_time = time.time()
 
         # Process document
@@ -93,7 +92,7 @@ def process_document(request, document_id):
 
         if success:
             return HttpResponse(
-                f'''<div class="text-green-400">
+                f"""<div class="text-green-400">
                     [OK] Dokument "{document.title}" przetworzony!<br>
                     <span class="text-xs">Utworzono {document.embeddings.count()} chunków w {processing_time:.1f}s</span>
                 </div>
@@ -101,7 +100,7 @@ def process_document(request, document_id):
                     // Refresh both lists immediately
                     htmx.ajax('GET', '/api/documents/list/?status=processed', {{target: '#processed-list'}});
                     htmx.ajax('GET', '/api/documents/list/?status=unprocessed', {{target: '#unprocessed-list'}});
-                </script>'''
+                </script>"""
             )
         else:
             return HttpResponse(
@@ -110,9 +109,7 @@ def process_document(request, document_id):
 
     except Exception as e:
         logger.error(f"Document processing failed: {e}", exc_info=True)
-        return HttpResponse(
-            f'<div class="text-red-400">[ERROR] Błąd: {str(e)}</div>'
-        )
+        return HttpResponse(f'<div class="text-red-400">[ERROR] Błąd: {str(e)}</div>')
 
 
 @require_http_methods(["POST"])
@@ -133,7 +130,7 @@ def process_all_documents(request):
         results = processor.process_all_unprocessed()
 
         return HttpResponse(
-            f'''<div class="text-green-400">
+            f"""<div class="text-green-400">
                 ✅ Przetworzono {results['success']}/{results['total']} dokumentów!<br>
                 <span class="text-xs">Nieudane: {results['failed']}</span>
             </div>
@@ -143,14 +140,12 @@ def process_all_documents(request):
                     htmx.ajax('GET', '/api/documents/list/?status=processed', {{target: '#processed-list'}});
                     htmx.ajax('GET', '/api/documents/list/?status=unprocessed', {{target: '#unprocessed-list'}});
                 }}, 3000);
-            </script>'''
+            </script>"""
         )
 
     except Exception as e:
         logger.error(f"Batch processing failed: {e}", exc_info=True)
-        return HttpResponse(
-            f'<div class="text-red-400">❌ Błąd: {str(e)}</div>'
-        )
+        return HttpResponse(f'<div class="text-red-400">❌ Błąd: {str(e)}</div>')
 
 
 @require_http_methods(["POST"])
@@ -165,14 +160,14 @@ def reprocess_document(request, document_id):
 
         if success:
             return HttpResponse(
-                f'''<div class="text-green-400">
+                f"""<div class="text-green-400">
                     ✅ Dokument "{document.title}" przetworzony ponownie!
                 </div>
                 <script>
                     setTimeout(() => {{
                         htmx.ajax('GET', '/api/documents/list/?status=processed', {{target: '#processed-list'}});
                     }}, 2000);
-                </script>'''
+                </script>"""
             )
         else:
             return HttpResponse(
@@ -181,9 +176,7 @@ def reprocess_document(request, document_id):
 
     except Exception as e:
         logger.error(f"Reprocessing failed: {e}", exc_info=True)
-        return HttpResponse(
-            f'<div class="text-red-400">❌ Błąd: {str(e)}</div>'
-        )
+        return HttpResponse(f'<div class="text-red-400">❌ Błąd: {str(e)}</div>')
 
 
 @require_http_methods(["POST"])
@@ -195,14 +188,19 @@ def delete_document(request, document_id):
     try:
         # Delete embeddings from Supabase
         from knowledge.services.rag_service import RAGService
+
         rag = RAGService()
 
         embeddings = document.embeddings.all()
         for emb in embeddings:
             try:
-                rag.supabase.table("vector_embeddings").delete().eq("id", emb.embedding_id).execute()
+                rag.supabase.table("vector_embeddings").delete().eq(
+                    "id", emb.embedding_id
+                ).execute()
             except Exception as e:
-                logger.warning(f"Failed to delete embedding {emb.embedding_id} from Supabase: {e}")
+                logger.warning(
+                    f"Failed to delete embedding {emb.embedding_id} from Supabase: {e}"
+                )
 
         # Delete document and related embeddings from Django
         document_title = document.title
@@ -211,14 +209,14 @@ def delete_document(request, document_id):
         logger.info(f"Document deleted: {document_title}")
 
         return HttpResponse(
-            f'''<div class="text-green-400">
+            f"""<div class="text-green-400">
                 [OK] Dokument "{document_title}" został usunięty
             </div>
             <script>
                 // Refresh both lists
                 htmx.ajax('GET', '/api/documents/list/?status=processed', {{target: '#processed-list'}});
                 htmx.ajax('GET', '/api/documents/list/?status=unprocessed', {{target: '#unprocessed-list'}});
-            </script>'''
+            </script>"""
         )
 
     except Exception as e:
@@ -232,14 +230,14 @@ def delete_document(request, document_id):
 @ajax_login_required
 def list_documents(request):
     """List documents (processed or unprocessed) for HTMX refresh."""
-    status = request.GET.get('status', 'processed')
+    status = request.GET.get("status", "processed")
 
-    if status == 'processed':
-        documents = Document.objects.filter(processed=True).order_by('-uploaded_at')
-        template = 'partials/processed_documents.html'
+    if status == "processed":
+        documents = Document.objects.filter(processed=True).order_by("-uploaded_at")
+        template = "partials/processed_documents.html"
     else:
-        documents = Document.objects.filter(processed=False).order_by('-uploaded_at')
-        template = 'partials/unprocessed_documents.html'
+        documents = Document.objects.filter(processed=False).order_by("-uploaded_at")
+        template = "partials/unprocessed_documents.html"
 
-    html = render_to_string(template, {'documents': documents})
+    html = render_to_string(template, {"documents": documents})
     return HttpResponse(html)

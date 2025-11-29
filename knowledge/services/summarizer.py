@@ -2,8 +2,10 @@
 Document summarization service for generating hierarchical summaries.
 Creates document-level and section-level summaries for better RAG context.
 """
+
 import logging
 from typing import Dict, List
+
 from django.conf import settings
 from langchain_openai import ChatOpenAI
 
@@ -25,14 +27,11 @@ class DocumentSummarizer:
         self.llm = ChatOpenAI(
             openai_api_key=settings.OPENAI_API_KEY,
             model="gpt-4o-mini",
-            temperature=0.2  # Lower for more consistent summaries
+            temperature=0.2,  # Lower for more consistent summaries
         )
 
     def generate_document_summary(
-        self,
-        full_text: str,
-        document_title: str,
-        max_length: int = 500
+        self, full_text: str, document_title: str, max_length: int = 500
     ) -> Dict[str, str]:
         """
         Generate executive summary of entire document.
@@ -87,15 +86,12 @@ ZAKRES ZASTOSOWANIA:
         except Exception as e:
             logger.error(f"Failed to generate summary: {e}")
             return {
-                'summary': f"Dokument: {document_title}",
-                'key_topics': [],
-                'scope': "Nie udało się wygenerować podsumowania"
+                "summary": f"Dokument: {document_title}",
+                "key_topics": [],
+                "scope": "Nie udało się wygenerować podsumowania",
             }
 
-    def generate_section_summaries(
-        self,
-        sections: List[tuple]
-    ) -> Dict[str, str]:
+    def generate_section_summaries(self, sections: List[tuple]) -> Dict[str, str]:
         """
         Generate summaries for each major section.
 
@@ -113,7 +109,9 @@ ZAKRES ZASTOSOWANIA:
                 continue
 
             # Truncate long sections
-            text_preview = section_text[:3000] if len(section_text) > 3000 else section_text
+            text_preview = (
+                section_text[:3000] if len(section_text) > 3000 else section_text
+            )
 
             prompt = f"""Stwórz zwięzłe podsumowanie (2-3 zdania) tej sekcji dokumentu prawnego:
 
@@ -137,10 +135,7 @@ Podsumowanie (2-3 zdania):"""
         return summaries
 
     def generate_chunk_context(
-        self,
-        chunk_text: str,
-        article_number: str = None,
-        section_name: str = None
+        self, chunk_text: str, article_number: str = None, section_name: str = None
     ) -> str:
         """
         Generate brief context/title for a chunk.
@@ -200,9 +195,9 @@ Obowiązki:"""
 
             # Parse bullet points
             obligations = [
-                line.strip().lstrip('-').strip()
-                for line in obligations_text.split('\n')
-                if line.strip().startswith('-')
+                line.strip().lstrip("-").strip()
+                for line in obligations_text.split("\n")
+                if line.strip().startswith("-")
             ]
 
             return obligations[:5]  # Max 5
@@ -221,21 +216,17 @@ Obowiązki:"""
         Returns:
             Dict with parsed fields
         """
-        result = {
-            'summary': '',
-            'key_topics': [],
-            'scope': ''
-        }
+        result = {"summary": "", "key_topics": [], "scope": ""}
 
         # Extract sections
         sections = {
-            'STRESZCZENIE:': 'summary',
-            'KLUCZOWE TEMATY:': 'key_topics',
-            'ZAKRES ZASTOSOWANIA:': 'scope'
+            "STRESZCZENIE:": "summary",
+            "KLUCZOWE TEMATY:": "key_topics",
+            "ZAKRES ZASTOSOWANIA:": "scope",
         }
 
         current_section = None
-        lines = response.split('\n')
+        lines = response.split("\n")
 
         for line in lines:
             line = line.strip()
@@ -248,27 +239,24 @@ Obowiązki:"""
 
             # Add content to current section
             if current_section and line and not any(h in line for h in sections.keys()):
-                if current_section == 'key_topics':
+                if current_section == "key_topics":
                     # Parse bullet points
-                    if line.startswith('-') or line.startswith('•'):
-                        topic = line.lstrip('-•').strip()
-                        result['key_topics'].append(topic)
-                elif current_section == 'summary':
-                    result['summary'] += line + ' '
-                elif current_section == 'scope':
-                    result['scope'] += line + ' '
+                    if line.startswith("-") or line.startswith("•"):
+                        topic = line.lstrip("-•").strip()
+                        result["key_topics"].append(topic)
+                elif current_section == "summary":
+                    result["summary"] += line + " "
+                elif current_section == "scope":
+                    result["scope"] += line + " "
 
         # Clean up
-        result['summary'] = result['summary'].strip()
-        result['scope'] = result['scope'].strip()
+        result["summary"] = result["summary"].strip()
+        result["scope"] = result["scope"].strip()
 
         return result
 
     def create_searchable_summary_chunk(
-        self,
-        document_id: int,
-        document_title: str,
-        summary: Dict
+        self, document_id: int, document_title: str, summary: Dict
     ) -> Dict:
         """
         Create a searchable summary chunk for the document.
@@ -296,12 +284,12 @@ ZAKRES ZASTOSOWANIA:
 """
 
         return {
-            'content': summary_text,
-            'metadata': {
-                'document_id': document_id,
-                'document_title': document_title,
-                'chunk_type': 'document_summary',
-                'is_summary': True,
-                **summary
-            }
+            "content": summary_text,
+            "metadata": {
+                "document_id": document_id,
+                "document_title": document_title,
+                "chunk_type": "document_summary",
+                "is_summary": True,
+                **summary,
+            },
         }

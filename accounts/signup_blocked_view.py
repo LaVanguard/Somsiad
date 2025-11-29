@@ -1,6 +1,7 @@
 """
 Blocked signup view - prevents any signup attempts.
 """
+
 from django.http import HttpResponse
 from django.views.decorators.http import require_http_methods
 
@@ -12,7 +13,7 @@ def signup_blocked(request):
     This replaces django-allauth signup view completely.
     """
     return HttpResponse(
-        '''
+        """
         <!DOCTYPE html>
         <html>
         <head>
@@ -72,6 +73,6 @@ def signup_blocked(request):
             </div>
         </body>
         </html>
-        ''',
-        status=403
+        """,
+        status=403,
     )

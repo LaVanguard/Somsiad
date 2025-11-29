@@ -12,9 +12,9 @@ Available settings modules:
 import os
 
 # Determine which settings to use
-environment = os.environ.get('ENVIRONMENT', 'development')
+environment = os.environ.get("ENVIRONMENT", "development")
 
-if environment == 'production':
+if environment == "production":
     from .production import *
 else:
     from .development import *

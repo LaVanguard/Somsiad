@@ -10,10 +10,11 @@ Tests cover:
 - Error handling for API failures
 - Edge cases (empty documents, very short texts)
 """
-import pytest
-from unittest.mock import Mock, MagicMock
-from knowledge.services.summarizer import DocumentSummarizer
+from unittest.mock import MagicMock, Mock
 
+import pytest
+
+from knowledge.services.summarizer import DocumentSummarizer
 
 # ============================================================================
 # Document-Level Summary Tests

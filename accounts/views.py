@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
-from django.shortcuts import render
-from django.http import HttpResponse, StreamingHttpResponse
-from django.views.decorators.http import require_http_methods
-from django.template.loader import render_to_string
-from django.contrib.auth.decorators import login_required
-from django.conf import settings
-import logging
 import json
+import logging
 import time
 
-from knowledge.services.rag_service import RAGService
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse, StreamingHttpResponse
+from django.shortcuts import render
+from django.template.loader import render_to_string
+from django.views.decorators.http import require_http_methods
+
 from knowledge.models import Document
-from queries.models import Query, Conversation
+from knowledge.services.rag_service import RAGService
+from queries.models import Conversation, Query
+
 from .ratelimit_decorators import ratelimit_rag_query
 
 logger = logging.getLogger(__name__)
@@ -21,13 +23,14 @@ logger = logging.getLogger(__name__)
 def home(request):
     """Home view with document data and conversations for sidebar."""
     # Get processed and unprocessed documents
-    processed_docs = Document.objects.filter(processed=True).order_by('-uploaded_at')
-    unprocessed_docs = Document.objects.filter(processed=False).order_by('-uploaded_at')
+    processed_docs = Document.objects.filter(processed=True).order_by("-uploaded_at")
+    unprocessed_docs = Document.objects.filter(processed=False).order_by("-uploaded_at")
 
     # Get user conversations if authenticated
     conversations = []
     if request.user.is_authenticated:
         from datetime import timedelta
+
         from django.utils import timezone
 
         now = timezone.now()
@@ -36,33 +39,29 @@ def home(request):
 
         user_conversations = Conversation.objects.filter(
             user=request.user
-        ).prefetch_related('queries')
+        ).prefetch_related("queries")
 
-        grouped = {
-            'today': [],
-            'yesterday': [],
-            'older': []
-        }
+        grouped = {"today": [], "yesterday": [], "older": []}
 
         for conv in user_conversations:
             if conv.updated_at >= today_start:
-                grouped['today'].append(conv)
+                grouped["today"].append(conv)
             elif conv.updated_at >= yesterday_start:
-                grouped['yesterday'].append(conv)
+                grouped["yesterday"].append(conv)
             else:
-                grouped['older'].append(conv)
+                grouped["older"].append(conv)
 
         conversations = grouped
 
     context = {
-        'processed_documents': processed_docs,
-        'unprocessed_documents': unprocessed_docs,
-        'processed_count': processed_docs.count(),
-        'unprocessed_count': unprocessed_docs.count(),
-        'grouped_conversations': conversations,
+        "processed_documents": processed_docs,
+        "unprocessed_documents": unprocessed_docs,
+        "processed_count": processed_docs.count(),
+        "unprocessed_count": unprocessed_docs.count(),
+        "grouped_conversations": conversations,
     }
 
-    return render(request, 'home.html', context)
+    return render(request, "home.html", context)
 
 
 @require_http_methods(["POST"])
@@ -72,18 +71,17 @@ def query_api(request):
     Chat API endpoint with RAG integration.
     Processes user questions and returns AI-generated legal advice.
     """
-    question = request.POST.get('question', '').strip()
-    image = request.FILES.get('image', None)
-    action = request.POST.get('action', None)
-    conversation_id = request.POST.get('conversation_id', None)
+    question = request.POST.get("question", "").strip()
+    image = request.FILES.get("image", None)
+    action = request.POST.get("action", None)
+    conversation_id = request.POST.get("conversation_id", None)
 
     # Get or create conversation
     conversation = None
     if conversation_id:
         try:
             conversation = Conversation.objects.get(
-                id=conversation_id,
-                user=request.user
+                id=conversation_id, user=request.user
             )
         except Conversation.DoesNotExist:
             pass
@@ -92,17 +90,16 @@ def query_api(request):
     if not conversation:
         conversation = Conversation.objects.create(
             user=request.user,
-            title=question[:50] + "..." if len(question) > 50 else question
+            title=question[:50] + "..." if len(question) > 50 else question,
         )
 
     # Validate question
     if not question:
         return HttpResponse(
-            render_to_string('partials/message.html', {
-                'question': '',
-                'answer': '❌ Proszę zadać pytanie!',
-                'error': True
-            })
+            render_to_string(
+                "partials/message.html",
+                {"question": "", "answer": "❌ Proszę zadać pytanie!", "error": True},
+            )
         )
 
     # Handle image upload (save for Query model)
@@ -111,12 +108,13 @@ def query_api(request):
     if image:
         # Save image temporarily (will be saved to Query model)
         import base64
-        image_data = base64.b64encode(image.read()).decode('utf-8')
+
+        image_data = base64.b64encode(image.read()).decode("utf-8")
         image_url = f"data:{image.content_type};base64,{image_data}"
         saved_image = image
 
     # Handle joke actions (mock responses - no RAG)
-    if action in ['prokuratura', 'donos', 'straz']:
+    if action in ["prokuratura", "donos", "straz"]:
         answer = _get_joke_response(action, question)
         sources = []
         processing_time = 0.0
@@ -165,22 +163,22 @@ def query_api(request):
             image=saved_image,
             answer=answer,
             sources=sources,
-            processing_time=processing_time
+            processing_time=processing_time,
         )
     except Exception as e:
         logger.error(f"Failed to save query: {e}")
 
     # Render response
     context = {
-        'question': question,
-        'image_url': image_url,
-        'answer': answer,
-        'sources': sources[:3] if sources else [],  # Show max 3 sources
-        'processing_time': processing_time,
-        'conversation_id': conversation.id
+        "question": question,
+        "image_url": image_url,
+        "answer": answer,
+        "sources": sources[:3] if sources else [],  # Show max 3 sources
+        "processing_time": processing_time,
+        "conversation_id": conversation.id,
     }
 
-    html = render_to_string('partials/message.html', context)
+    html = render_to_string("partials/message.html", context)
     return HttpResponse(html)
 
 
@@ -192,16 +190,15 @@ def query_stream_api(request):
     Streaming chat API endpoint with RAG integration.
     Returns Server-Sent Events (SSE) for real-time response streaming.
     """
-    question = request.POST.get('question', '').strip()
-    conversation_id = request.POST.get('conversation_id', None)
+    question = request.POST.get("question", "").strip()
+    conversation_id = request.POST.get("conversation_id", None)
 
     # Get or create conversation
     conversation = None
     if conversation_id:
         try:
             conversation = Conversation.objects.get(
-                id=conversation_id,
-                user=request.user
+                id=conversation_id, user=request.user
             )
         except Conversation.DoesNotExist:
             pass
@@ -209,20 +206,26 @@ def query_stream_api(request):
     if not conversation:
         conversation = Conversation.objects.create(
             user=request.user,
-            title=question[:50] + "..." if len(question) > 50 else question
+            title=question[:50] + "..." if len(question) > 50 else question,
         )
 
     # Validate question
     if not question:
+
         def error_stream():
             yield f"data: {json.dumps({'error': 'Proszę zadać pytanie!'})}\n\n"
-        return StreamingHttpResponse(error_stream(), content_type='text/event-stream')
+
+        return StreamingHttpResponse(error_stream(), content_type="text/event-stream")
 
     # Check API keys
     if not settings.OPENAI_API_KEY or not settings.SUPABASE_URL:
+
         def config_error_stream():
             yield f"data: {json.dumps({'error': 'RAG system not configured'})}\n\n"
-        return StreamingHttpResponse(config_error_stream(), content_type='text/event-stream')
+
+        return StreamingHttpResponse(
+            config_error_stream(), content_type="text/event-stream"
+        )
 
     def event_stream():
         """Generator for SSE streaming."""
@@ -243,7 +246,7 @@ def query_stream_api(request):
                 {
                     "text": text[:200] + "..." if len(text) > 200 else text,
                     "metadata": metadata,
-                    "similarity": similarity
+                    "similarity": similarity,
                 }
                 for text, metadata, similarity in search_results
             ]
@@ -274,7 +277,7 @@ def query_stream_api(request):
                 answer=full_answer,
                 sources=sources,
                 processing_time=processing_time,
-                ttft=ttft  # Time To First Token (PRD v2.1 NFR-1)
+                ttft=ttft,  # Time To First Token (PRD v2.1 NFR-1)
             )
 
             # Generate conversation title if this is the first query
@@ -286,7 +289,9 @@ def query_stream_api(request):
 
             # Log performance metrics
             if ttft:
-                logger.info(f"Performance: TTFT={ttft:.3f}s, Total={processing_time:.3f}s")
+                logger.info(
+                    f"Performance: TTFT={ttft:.3f}s, Total={processing_time:.3f}s"
+                )
 
             # Send completion event with sources and performance data
             yield f"data: {json.dumps({
@@ -300,7 +305,7 @@ def query_stream_api(request):
             logger.error(f"Streaming RAG query failed: {e}", exc_info=True)
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
-    return StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+    return StreamingHttpResponse(event_stream(), content_type="text/event-stream")
 
 
 def _generate_conversation_title(question: str, answer: str) -> str:
@@ -318,9 +323,7 @@ def _generate_conversation_title(question: str, answer: str) -> str:
         from langchain_openai import ChatOpenAI
 
         llm = ChatOpenAI(
-            openai_api_key=settings.OPENAI_API_KEY,
-            model="gpt-4o-mini",
-            temperature=0.3
+            openai_api_key=settings.OPENAI_API_KEY, model="gpt-4o-mini", temperature=0.3
         )
 
         prompt = f"""Wygeneruj krótki tytuł (max 40 znaków) dla tej rozmowy w języku polskim.
@@ -345,32 +348,32 @@ Zwróć TYLKO tytuł, bez cudzysłowów i dodatkowych znaków."""
 def _get_joke_response(action: str, question: str) -> str:
     """Generate joke responses for action buttons."""
     templates = {
-        'prokuratura': (
-            '⚖️ ZGŁOSZENIE DO PROKURATURY REJONOWEJ\n\n'
-            'Szanowny Panie Prokuratorze,\n\n'
-            'Niniejszym zgłaszam sprawę wymagającą interwencji prokuratury. '
+        "prokuratura": (
+            "⚖️ ZGŁOSZENIE DO PROKURATURY REJONOWEJ\n\n"
+            "Szanowny Panie Prokuratorze,\n\n"
+            "Niniejszym zgłaszam sprawę wymagającą interwencji prokuratury. "
             'Sprawa dotyczy: "{}"\n\n'
-            'Z poważaniem,\n'
-            'Zatroskany Obywatel\n\n'
-            '(To jest żartobliwa odpowiedź 😄)'
+            "Z poważaniem,\n"
+            "Zatroskany Obywatel\n\n"
+            "(To jest żartobliwa odpowiedź 😄)"
         ),
-        'donos': (
-            '📧 ANONIMOWY DONOS DO URZĘDU GMINY\n\n'
-            'Do Wójta Gminy,\n\n'
+        "donos": (
+            "📧 ANONIMOWY DONOS DO URZĘDU GMINY\n\n"
+            "Do Wójta Gminy,\n\n"
             'Uprzejmie informuję o nieprawidłowościach: "{}"\n\n'
-            'Proszę o dyskretną interwencję.\n\n'
-            'Pozdrawiam,\n'
-            'Anonim z sąsiedztwa\n\n'
-            '(To jest żartobliwa odpowiedź 😄)'
+            "Proszę o dyskretną interwencję.\n\n"
+            "Pozdrawiam,\n"
+            "Anonim z sąsiedztwa\n\n"
+            "(To jest żartobliwa odpowiedź 😄)"
         ),
-        'straz': (
-            '🚨 ZGŁOSZENIE DO STRAŻY MIEJSKIEJ\n\n'
-            'Witam,\n\n'
+        "straz": (
+            "🚨 ZGŁOSZENIE DO STRAŻY MIEJSKIEJ\n\n"
+            "Witam,\n\n"
             'Proszę o pilną interwencję Straży Miejskiej w sprawie: "{}"\n\n'
-            'Zgłoszenie dotyczy naruszenia porządku publicznego.\n\n'
-            'Dziękuję,\n'
-            'Zaniepokojony Mieszkaniec\n\n'
-            '(To jest żartobliwa odpowiedź 😄)'
-        )
+            "Zgłoszenie dotyczy naruszenia porządku publicznego.\n\n"
+            "Dziękuję,\n"
+            "Zaniepokojony Mieszkaniec\n\n"
+            "(To jest żartobliwa odpowiedź 😄)"
+        ),
     }
-    return templates.get(action, '').format(question)
+    return templates.get(action, "").format(question)

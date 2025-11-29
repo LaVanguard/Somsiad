@@ -6,18 +6,26 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('queries', '0002_conversation_query_conversation'),
+        ("queries", "0002_conversation_query_conversation"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='query',
-            name='ttft',
-            field=models.FloatField(blank=True, help_text='Time To First Token - PRD v2.1 NFR-1 (target: <5s P95)', null=True),
+            model_name="query",
+            name="ttft",
+            field=models.FloatField(
+                blank=True,
+                help_text="Time To First Token - PRD v2.1 NFR-1 (target: <5s P95)",
+                null=True,
+            ),
         ),
         migrations.AlterField(
-            model_name='query',
-            name='processing_time',
-            field=models.FloatField(blank=True, help_text='Total time from query to completion (seconds)', null=True),
+            model_name="query",
+            name="processing_time",
+            field=models.FloatField(
+                blank=True,
+                help_text="Total time from query to completion (seconds)",
+                null=True,
+            ),
         ),
     ]

@@ -2,23 +2,28 @@
 Test script to verify RAG configuration is PRD-compliant.
 Run: python test_rag_config.py
 """
+
 import os
 import sys
+
 import django
 
 # Fix encoding for Windows console
-if sys.platform == 'win32':
+if sys.platform == "win32":
     import codecs
-    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
-    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
+
+    sys.stdout = codecs.getwriter("utf-8")(sys.stdout.buffer, "strict")
+    sys.stderr = codecs.getwriter("utf-8")(sys.stderr.buffer, "strict")
 
 # Setup Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 django.setup()
+
+from django.conf import settings
 
 from knowledge.services.document_processor import DocumentProcessor
 from knowledge.services.rag_service import RAGService
-from django.conf import settings
+
 
 def test_rag_config():
     """Verify all RAG configurations match PRD v2.1 Section 2.2"""
@@ -43,7 +48,9 @@ def test_rag_config():
     print("\n2. DocumentProcessor Configuration:")
     processor = DocumentProcessor()
 
-    print(f"   ✓ SemanticChunker max_chunk_size: {processor.semantic_chunker.max_chunk_size}")
+    print(
+        f"   ✓ SemanticChunker max_chunk_size: {processor.semantic_chunker.max_chunk_size}"
+    )
     print(f"   ✓ Preprocessing enabled: {processor.enable_preprocessing}")
     print(f"   ✓ Semantic chunking enabled: {processor.use_semantic_chunking}")
     print(f"   ✓ Summaries enabled: {processor.generate_summaries}")
@@ -54,7 +61,7 @@ def test_rag_config():
 
     # Test settings.py RAG_CONFIG
     print("\n3. settings.RAG_CONFIG:")
-    if hasattr(settings, 'RAG_CONFIG'):
+    if hasattr(settings, "RAG_CONFIG"):
         rag_config = settings.RAG_CONFIG
         print(f"   ✓ EMBEDDING_MODEL: {rag_config['EMBEDDING_MODEL']}")
         print(f"   ✓ EMBEDDING_DIMENSION: {rag_config['EMBEDDING_DIMENSION']}")
@@ -64,13 +71,13 @@ def test_rag_config():
         print(f"   ✓ MAX_CHUNK_SIZE: {rag_config['MAX_CHUNK_SIZE']}")
         print(f"   ✓ CHUNK_OVERLAP: {rag_config['CHUNK_OVERLAP']}")
 
-        assert rag_config['EMBEDDING_MODEL'] == 'text-embedding-3-small'
-        assert rag_config['EMBEDDING_DIMENSION'] == 1536
-        assert rag_config['GENERATION_MODEL'] == 'gpt-5-mini'
-        assert rag_config['TEMPERATURE'] == 0.3
-        assert rag_config['TOP_K'] == 5
-        assert rag_config['MAX_CHUNK_SIZE'] == 1500
-        assert rag_config['CHUNK_OVERLAP'] == 200
+        assert rag_config["EMBEDDING_MODEL"] == "text-embedding-3-small"
+        assert rag_config["EMBEDDING_DIMENSION"] == 1536
+        assert rag_config["GENERATION_MODEL"] == "gpt-5-mini"
+        assert rag_config["TEMPERATURE"] == 0.3
+        assert rag_config["TOP_K"] == 5
+        assert rag_config["MAX_CHUNK_SIZE"] == 1500
+        assert rag_config["CHUNK_OVERLAP"] == 200
     else:
         print("   ⚠️ RAG_CONFIG not found in settings")
 
@@ -83,7 +90,8 @@ def test_rag_config():
     print("  2. Check Supabase schema for pgvector table")
     print("  3. Test query endpoint with streaming")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     try:
         test_rag_config()
     except AssertionError as e:
@@ -92,5 +100,6 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"\n❌ ERROR: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

@@ -2,14 +2,16 @@
 Semantic chunking for legal documents.
 Splits by logical structure (articles, sections) instead of fixed character count.
 """
+
 import re
-from typing import List, Dict, Tuple
 from dataclasses import dataclass
+from typing import Dict, List, Tuple
 
 
 @dataclass
 class LegalChunk:
     """Represents a semantically meaningful chunk of legal text."""
+
     content: str
     chunk_type: str  # 'article', 'section', 'paragraph', 'preamble'
     article_number: str = None
@@ -20,12 +22,12 @@ class LegalChunk:
     def to_dict(self) -> Dict:
         """Convert to dict for storage."""
         return {
-            'content': self.content,
-            'chunk_type': self.chunk_type,
-            'article_number': self.article_number,
-            'section_name': self.section_name,
-            'paragraph_number': self.paragraph_number,
-            'metadata': self.metadata or {}
+            "content": self.content,
+            "chunk_type": self.chunk_type,
+            "article_number": self.article_number,
+            "section_name": self.section_name,
+            "paragraph_number": self.paragraph_number,
+            "metadata": self.metadata or {},
         }
 
 
@@ -52,19 +54,15 @@ class SemanticChunker:
         # Regex patterns for Polish legal documents
         self.patterns = {
             # Articles: Art. 1., Art. 2., etc.
-            'article': re.compile(r'Art\.\s*\d+[a-z]?\s*\.', re.IGNORECASE),
-
+            "article": re.compile(r"Art\.\s*\d+[a-z]?\s*\.", re.IGNORECASE),
             # Sections: Rozdział 1, Rozdział II, DZIAŁ I, etc.
-            'section': re.compile(
-                r'(DZIAŁ|Rozdział|ROZDZIAŁ)\s+([IVX]+|\d+)\s*[:\n]',
-                re.IGNORECASE
+            "section": re.compile(
+                r"(DZIAŁ|Rozdział|ROZDZIAŁ)\s+([IVX]+|\d+)\s*[:\n]", re.IGNORECASE
             ),
-
             # Paragraphs: § 1, § 2
-            'paragraph': re.compile(r'§\s*\d+\s*\.?', re.IGNORECASE),
-
+            "paragraph": re.compile(r"§\s*\d+\s*\.?", re.IGNORECASE),
             # Ustęp (subsection): 1., 2., 3.
-            'subsection': re.compile(r'^\d+\.\s+', re.MULTILINE),
+            "subsection": re.compile(r"^\d+\.\s+", re.MULTILINE),
         }
 
     def chunk_document(self, text: str, metadata: Dict = None) -> List[LegalChunk]:
@@ -97,10 +95,10 @@ class SemanticChunker:
                     # Keep article as single chunk
                     chunk = LegalChunk(
                         content=article_text.strip(),
-                        chunk_type='article',
+                        chunk_type="article",
                         article_number=article_num,
                         section_name=section_name,
-                        metadata=metadata
+                        metadata=metadata,
                     )
                     chunks.append(chunk)
 
@@ -114,11 +112,11 @@ class SemanticChunker:
             List of (section_name, section_text) tuples
         """
         # Find all section markers
-        matches = list(self.patterns['section'].finditer(text))
+        matches = list(self.patterns["section"].finditer(text))
 
         if not matches:
             # No sections found - return whole text as one section
-            return [('Cały dokument', text)]
+            return [("Cały dokument", text)]
 
         sections = []
 
@@ -134,9 +132,9 @@ class SemanticChunker:
 
         # Add preamble if there's text before first section
         if matches[0].start() > 0:
-            preamble_text = text[:matches[0].start()]
+            preamble_text = text[: matches[0].start()]
             if preamble_text.strip():
-                sections.insert(0, ('Preambuła', preamble_text))
+                sections.insert(0, ("Preambuła", preamble_text))
 
         return sections
 
@@ -148,7 +146,7 @@ class SemanticChunker:
             List of (article_number, article_text) tuples
         """
         # Find all article markers
-        matches = list(self.patterns['article'].finditer(text))
+        matches = list(self.patterns["article"].finditer(text))
 
         if not matches:
             # No articles found - try paragraphs
@@ -159,7 +157,7 @@ class SemanticChunker:
         for i, match in enumerate(matches):
             article_marker = match.group(0)
             # Extract just the number: "Art. 5." → "5"
-            article_num = re.search(r'\d+[a-z]?', article_marker).group(0)
+            article_num = re.search(r"\d+[a-z]?", article_marker).group(0)
 
             start = match.start()
             # Find end (next article or end of text)
@@ -170,9 +168,9 @@ class SemanticChunker:
 
         # Add preamble if there's text before first article
         if matches[0].start() > 0:
-            preamble_text = text[:matches[0].start()]
+            preamble_text = text[: matches[0].start()]
             if preamble_text.strip():
-                articles.insert(0, ('Przepisy ogólne', preamble_text))
+                articles.insert(0, ("Przepisy ogólne", preamble_text))
 
         return articles
 
@@ -184,17 +182,17 @@ class SemanticChunker:
         Returns:
             List of (paragraph_id, paragraph_text) tuples
         """
-        matches = list(self.patterns['paragraph'].finditer(text))
+        matches = list(self.patterns["paragraph"].finditer(text))
 
         if not matches:
             # No structure found - return as single chunk
-            return [('Fragment', text)]
+            return [("Fragment", text)]
 
         paragraphs = []
 
         for i, match in enumerate(matches):
             para_marker = match.group(0)
-            para_num = re.search(r'\d+', para_marker).group(0)
+            para_num = re.search(r"\d+", para_marker).group(0)
 
             start = match.start()
             end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
@@ -205,9 +203,7 @@ class SemanticChunker:
         return paragraphs
 
     def _split_long_article(
-        self,
-        article_text: str,
-        article_num: str
+        self, article_text: str, article_num: str
     ) -> List[LegalChunk]:
         """
         Split very long articles into smaller chunks.
@@ -221,7 +217,7 @@ class SemanticChunker:
             List of LegalChunk objects
         """
         # Find subsection markers (1., 2., 3.)
-        matches = list(self.patterns['subsection'].finditer(article_text))
+        matches = list(self.patterns["subsection"].finditer(article_text))
 
         if not matches or len(matches) < 2:
             # Can't split meaningfully - chunk by size as fallback
@@ -237,10 +233,10 @@ class SemanticChunker:
 
             chunk = LegalChunk(
                 content=subsection_text.strip(),
-                chunk_type='subsection',
+                chunk_type="subsection",
                 article_number=article_num,
-                paragraph_number=subsection_num.rstrip('.'),
-                metadata={}
+                paragraph_number=subsection_num.rstrip("."),
+                metadata={},
             )
             chunks.append(chunk)
 
@@ -268,10 +264,10 @@ class SemanticChunker:
 
             if current_size >= self.max_chunk_size:
                 chunk = LegalChunk(
-                    content=' '.join(current_chunk),
-                    chunk_type='fragment',
+                    content=" ".join(current_chunk),
+                    chunk_type="fragment",
                     article_number=article_num,
-                    metadata={'split_reason': 'size_limit'}
+                    metadata={"split_reason": "size_limit"},
                 )
                 chunks.append(chunk)
                 current_chunk = []
@@ -280,10 +276,10 @@ class SemanticChunker:
         # Add remaining text
         if current_chunk:
             chunk = LegalChunk(
-                content=' '.join(current_chunk),
-                chunk_type='fragment',
+                content=" ".join(current_chunk),
+                chunk_type="fragment",
                 article_number=article_num,
-                metadata={'split_reason': 'size_limit'}
+                metadata={"split_reason": "size_limit"},
             )
             chunks.append(chunk)
 
@@ -302,24 +298,20 @@ class SemanticChunker:
         metadata = chunk.metadata or {}
 
         # Extract article references (e.g., "art. 5", "Art. 10")
-        article_refs = re.findall(
-            r'art\.?\s*\d+[a-z]?',
-            chunk.content,
-            re.IGNORECASE
-        )
-        metadata['article_references'] = list(set(article_refs))
+        article_refs = re.findall(r"art\.?\s*\d+[a-z]?", chunk.content, re.IGNORECASE)
+        metadata["article_references"] = list(set(article_refs))
 
         # Extract paragraph references (§)
-        para_refs = re.findall(r'§\s*\d+', chunk.content)
-        metadata['paragraph_references'] = list(set(para_refs))
+        para_refs = re.findall(r"§\s*\d+", chunk.content)
+        metadata["paragraph_references"] = list(set(para_refs))
 
         # Extract measurements/distances (common in building law)
-        measurements = re.findall(r'\d+[,.]?\d*\s*(?:m|cm|mm|km)', chunk.content)
-        metadata['measurements'] = list(set(measurements))
+        measurements = re.findall(r"\d+[,.]?\d*\s*(?:m|cm|mm|km)", chunk.content)
+        metadata["measurements"] = list(set(measurements))
 
         # Detect if chunk contains obligations/requirements
-        obligation_keywords = ['należy', 'powinien', 'musi', 'zobowiązany', 'obowiązek']
+        obligation_keywords = ["należy", "powinien", "musi", "zobowiązany", "obowiązek"]
         has_obligations = any(kw in chunk.content.lower() for kw in obligation_keywords)
-        metadata['contains_obligations'] = has_obligations
+        metadata["contains_obligations"] = has_obligations
 
         return metadata

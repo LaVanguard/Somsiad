@@ -12,12 +12,14 @@ Tests cover:
 Note: These tests serve as E2E-style integration tests verifying
 the full document processing workflow without requiring Playwright.
 """
+import json
+
 import pytest
-from django.test import Client
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import Client
+
 from knowledge.models import Document
-import json
 
 User = get_user_model()
 

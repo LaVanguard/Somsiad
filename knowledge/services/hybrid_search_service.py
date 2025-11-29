@@ -2,10 +2,12 @@
 Hybrid Search Service combining BM25 keyword + Vector semantic search.
 Sprint 8 - RAG 2.0 implementation.
 """
+
 import logging
-from typing import List, Dict, Tuple
+from typing import Dict, List, Tuple
+
 from django.conf import settings
-from supabase import create_client, Client
+from supabase import Client, create_client
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +44,7 @@ class HybridSearchService:
     def _reciprocal_rank_fusion(
         self,
         bm25_results: List[Tuple[str, float]],
-        vector_results: List[Tuple[str, Dict, float]]
+        vector_results: List[Tuple[str, Dict, float]],
     ) -> List[Tuple[str, float]]:
         """
         Combine BM25 and vector search results using Reciprocal Rank Fusion.
@@ -67,22 +69,28 @@ class HybridSearchService:
         # Add vector rankings
         for rank, (content, metadata, similarity) in enumerate(vector_results):
             # Extract chunk ID from metadata or use a hash of content
-            chunk_id = metadata.get('id') if isinstance(metadata, dict) else None
+            chunk_id = metadata.get("id") if isinstance(metadata, dict) else None
 
             if chunk_id is None:
                 # Fallback: fetch ID from database using content
-                logger.warning(f"Chunk ID not in metadata for rank {rank}, fetching from DB...")
+                logger.warning(
+                    f"Chunk ID not in metadata for rank {rank}, fetching from DB..."
+                )
                 try:
-                    response = self.supabase.table("vector_embeddings") \
-                        .select("id") \
-                        .eq("content", content) \
-                        .limit(1) \
+                    response = (
+                        self.supabase.table("vector_embeddings")
+                        .select("id")
+                        .eq("content", content)
+                        .limit(1)
                         .execute()
+                    )
 
                     if response.data:
-                        chunk_id = str(response.data[0]['id'])
+                        chunk_id = str(response.data[0]["id"])
                     else:
-                        logger.error(f"Could not find chunk ID for content: {content[:50]}...")
+                        logger.error(
+                            f"Could not find chunk ID for content: {content[:50]}..."
+                        )
                         continue
 
                 except Exception as e:
@@ -94,8 +102,10 @@ class HybridSearchService:
         # Sort by RRF score (descending)
         sorted_results = sorted(rrf_scores.items(), key=lambda x: x[1], reverse=True)
 
-        logger.info(f"RRF fusion: {len(bm25_results)} BM25 + {len(vector_results)} vector "
-                   f"→ {len(sorted_results)} unique chunks")
+        logger.info(
+            f"RRF fusion: {len(bm25_results)} BM25 + {len(vector_results)} vector "
+            f"→ {len(sorted_results)} unique chunks"
+        )
 
         return sorted_results
 
@@ -114,21 +124,21 @@ class HybridSearchService:
 
         try:
             # Fetch chunks from Supabase
-            response = self.supabase.table("vector_embeddings") \
-                .select("id, content, metadata") \
-                .in_("id", chunk_ids) \
+            response = (
+                self.supabase.table("vector_embeddings")
+                .select("id, content, metadata")
+                .in_("id", chunk_ids)
                 .execute()
+            )
 
             chunks = response.data
 
             # Create a mapping to preserve order
-            chunk_map = {str(chunk['id']): chunk for chunk in chunks}
+            chunk_map = {str(chunk["id"]): chunk for chunk in chunks}
 
             # Return in the same order as chunk_ids
             ordered_chunks = [
-                chunk_map[chunk_id]
-                for chunk_id in chunk_ids
-                if chunk_id in chunk_map
+                chunk_map[chunk_id] for chunk_id in chunk_ids if chunk_id in chunk_map
             ]
 
             return ordered_chunks
@@ -138,10 +148,7 @@ class HybridSearchService:
             return []
 
     def hybrid_search(
-        self,
-        query: str,
-        top_k: int = 5,
-        use_query_rewriting: bool = False
+        self, query: str, top_k: int = 5, use_query_rewriting: bool = False
     ) -> List[Dict]:
         """
         Perform hybrid search combining BM25 and vector search.
@@ -182,16 +189,14 @@ class HybridSearchService:
         # 5. Add RRF scores to chunks
         rrf_score_map = dict(fused_results)
         for chunk in chunks:
-            chunk['rrf_score'] = rrf_score_map.get(str(chunk['id']), 0.0)
+            chunk["rrf_score"] = rrf_score_map.get(str(chunk["id"]), 0.0)
 
         logger.info(f"Hybrid search complete: {len(chunks)} chunks returned")
 
         return chunks
 
     def multi_query_hybrid_search(
-        self,
-        queries: List[str],
-        top_k: int = 5
+        self, queries: List[str], top_k: int = 5
     ) -> List[Dict]:
         """
         Perform hybrid search with multiple query variations.
@@ -203,7 +208,9 @@ class HybridSearchService:
         Returns:
             List of chunk dictionaries with aggregated RRF scores
         """
-        logger.info(f"Multi-query hybrid search: {len(queries)} queries (top_k={top_k})")
+        logger.info(
+            f"Multi-query hybrid search: {len(queries)} queries (top_k={top_k})"
+        )
 
         all_rrf_scores = {}
 
@@ -214,17 +221,23 @@ class HybridSearchService:
             # BM25 and vector search
             retrieve_k = max(top_k * 4, 20)
             bm25_results = self.bm25_service.search(query, top_k=retrieve_k)
-            vector_results = self.rag_service.search_similar_chunks(query, top_k=retrieve_k)
+            vector_results = self.rag_service.search_similar_chunks(
+                query, top_k=retrieve_k
+            )
 
             # RRF fusion for this query
-            query_rrf_results = self._reciprocal_rank_fusion(bm25_results, vector_results)
+            query_rrf_results = self._reciprocal_rank_fusion(
+                bm25_results, vector_results
+            )
 
             # Aggregate scores across queries
             for chunk_id, score in query_rrf_results:
                 all_rrf_scores[chunk_id] = all_rrf_scores.get(chunk_id, 0) + score
 
         # Sort by aggregated RRF score
-        sorted_results = sorted(all_rrf_scores.items(), key=lambda x: x[1], reverse=True)
+        sorted_results = sorted(
+            all_rrf_scores.items(), key=lambda x: x[1], reverse=True
+        )
 
         # Fetch top-k chunks
         top_chunk_ids = [chunk_id for chunk_id, score in sorted_results[:top_k]]
@@ -232,8 +245,10 @@ class HybridSearchService:
 
         # Add aggregated RRF scores
         for chunk in chunks:
-            chunk['rrf_score'] = all_rrf_scores.get(str(chunk['id']), 0.0)
+            chunk["rrf_score"] = all_rrf_scores.get(str(chunk["id"]), 0.0)
 
-        logger.info(f"Multi-query hybrid search complete: {len(chunks)} chunks returned")
+        logger.info(
+            f"Multi-query hybrid search complete: {len(chunks)} chunks returned"
+        )
 
         return chunks
