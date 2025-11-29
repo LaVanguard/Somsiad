@@ -51,7 +51,17 @@
       "Bash(venv/Scripts/playwright.exe show-trace:*)",
       "Bash(set:*)",
       "Bash(venv/Scripts/pytest.exe --collect-only -q)",
-      "Bash(venv/Scripts/pytest.exe --co -q)"
+      "Bash(venv/Scripts/pytest.exe --co -q)",
+      "Bash(nul)",
+      "Bash(venv/Scripts/pytest.exe --collect-only -q 2)",
+      "WebSearch",
+      "Bash(git mv:*)",
+      "Bash(move test_rag_query.py scriptsmanual_test_rag_query.py)",
+      "Bash(move test_rag_config.py scriptsmanual_test_rag_config.py)",
+      "Bash(venv/Scripts/pytest.exe --co -q --tb=no)",
+      "Bash(venv/Scripts/pytest.exe tests/test_memetic_actions.py -v)",
+      "Bash(venv/Scripts/pytest.exe tests/test_memetic_actions.py::TestMemeticActionsViews -v)",
+      "Bash(venv/Scripts/pytest.exe:*)"
     ],
     "deny": [],
     "ask": []

@@ -27,6 +27,9 @@ pytest-django==4.11.1
 pytest-cov==6.0.0
 playwright==1.55.0
 pytest-playwright==0.7.1
+pytest-mock==3.12.0
+factory-boy==3.3.0
+faker==22.6.0
 
 # Code Quality (CI/CD)
 black==24.10.0
