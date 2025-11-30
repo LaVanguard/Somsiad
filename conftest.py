@@ -97,14 +97,44 @@ def mock_supabase_client(mocker):
     """Mock Supabase client creation to avoid API key validation."""
     from unittest.mock import MagicMock
 
+    mock_response = MagicMock()
+    mock_response.data = [
+        {
+            "id": "test-uuid-1",
+            "content": "Art. 1. Test legal content",
+            "metadata": {"article_number": "1"},
+            "similarity": 0.95,
+        }
+    ]
+
     mock_client = MagicMock()
-    mock_client.rpc.return_value.execute.return_value.data = []
+    mock_client.rpc.return_value.execute.return_value = mock_response
     mock_client.table.return_value.select.return_value.execute.return_value.data = []
 
     mocker.patch("knowledge.services.rag_service.create_client", return_value=mock_client)
     mocker.patch("supabase.create_client", return_value=mock_client)
 
     return mock_client
+
+
+@pytest.fixture(autouse=True)
+def mock_openai_chat_streaming(mocker):
+    """Mock OpenAI ChatOpenAI for streaming to avoid API key validation."""
+    from unittest.mock import MagicMock
+
+    # Create mock chunks for streaming
+    mock_chunk1 = MagicMock()
+    mock_chunk1.content = "Test "
+    mock_chunk2 = MagicMock()
+    mock_chunk2.content = "response"
+
+    mock_chat = MagicMock()
+    mock_chat.stream.return_value = iter([mock_chunk1, mock_chunk2])
+    mock_chat.invoke.return_value.content = "Test response"
+
+    mocker.patch("langchain_openai.ChatOpenAI", return_value=mock_chat)
+
+    return mock_chat
 
 
 @pytest.fixture
