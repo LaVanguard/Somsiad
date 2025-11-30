@@ -294,12 +294,13 @@ def query_stream_api(request):
                 )
 
             # Send completion event with sources and performance data
-            yield f"data: {json.dumps({
-                'done': True,
-                'sources': sources[:3],
-                'processing_time': processing_time,
-                'ttft': ttft
-            })}\n\n"
+            completion_data = {
+                "done": True,
+                "sources": sources[:3],
+                "processing_time": processing_time,
+                "ttft": ttft,
+            }
+            yield f"data: {json.dumps(completion_data)}\n\n"
 
         except Exception as e:
             logger.error(f"Streaming RAG query failed: {e}", exc_info=True)
