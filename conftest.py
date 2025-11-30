@@ -92,6 +92,21 @@ def mock_openai_chat(mocker):
     return mock
 
 
+@pytest.fixture(autouse=True)
+def mock_supabase_client(mocker):
+    """Mock Supabase client creation to avoid API key validation."""
+    from unittest.mock import MagicMock
+
+    mock_client = MagicMock()
+    mock_client.rpc.return_value.execute.return_value.data = []
+    mock_client.table.return_value.select.return_value.execute.return_value.data = []
+
+    mocker.patch("knowledge.services.rag_service.create_client", return_value=mock_client)
+    mocker.patch("supabase.create_client", return_value=mock_client)
+
+    return mock_client
+
+
 @pytest.fixture
 def mock_supabase_search(mocker):
     """Mock Supabase vector search."""

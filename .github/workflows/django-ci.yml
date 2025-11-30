@@ -36,6 +36,16 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
+    - name: Collect static files
+      run: |
+        python manage.py collectstatic --noinput
+      env:
+        DJANGO_SETTINGS_MODULE: config.settings
+        SECRET_KEY: 'test-secret-key-for-ci-only-not-secure'
+        OPENAI_API_KEY: 'sk-test-mock-key-for-ci'
+        SUPABASE_URL: 'https://mock.supabase.co'
+        SUPABASE_KEY: 'mock-supabase-key-for-ci'
+
     - name: Run Django system checks
       run: |
         python manage.py check --deploy

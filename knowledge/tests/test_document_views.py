@@ -190,6 +190,7 @@ def test_trigger_document_processing(mock_user):
 # ============================================================================
 
 @pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_delete_document_success(mock_user):
     """Test successful document deletion"""
     client = Client()
@@ -230,6 +231,7 @@ def test_delete_document_not_found(mock_user):
 # ============================================================================
 
 @pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_full_document_workflow_integration(mock_user):
     """
     Integration test: Upload → Process → Query → Delete
